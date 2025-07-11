@@ -28,49 +28,49 @@ namespace SabaneLib{
 		case reinterpret_cast<uint32_t>(TIM2_BASE):
 			tim_clock = HAL_RCC_GetPCLK1Freq();
 			break;
-#endif //TIm2
+#endif //TIM2
 
 #ifdef TIM3
 		case reinterpret_cast<uint32_t>(TIM3_BASE):
 			tim_clock = HAL_RCC_GetPCLK1Freq();
 			break;
-#endif //TIm3
+#endif //TIM3
 
 #ifdef TIM4
 		case reinterpret_cast<uint32_t>(TIM4_BASE):
 			tim_clock = HAL_RCC_GetPCLK1Freq();
 			break;
-#endif //TIm4
+#endif //TIM4
 
 #ifdef TIM5
 		case reinterpret_cast<uint32_t>(TIM5_BASE):
 			tim_clock = HAL_RCC_GetPCLK1Freq();
 			break;
-#endif //TIm5
+#endif //TIM5
 
 #ifdef TIM6
 		case reinterpret_cast<uint32_t>(TIM6_BASE):
 			tim_clock = HAL_RCC_GetPCLK1Freq();
 			break;
-#endif //TIm6
+#endif //TIM6
 
 #ifdef TIM7
 		case reinterpret_cast<uint32_t>(TIM7_BASE):
 			tim_clock = HAL_RCC_GetPCLK1Freq();
 			break;
-#endif //TIm7
+#endif //TIM7
 
 #ifdef TIM8
 		case reinterpret_cast<uint32_t>(TIM8_BASE):
 			tim_clock = HAL_RCC_GetPCLK2Freq();
 			break;
-#endif //TIm8
+#endif //TIM8
 
 #ifdef TIM12
 		case reinterpret_cast<uint32_t>(TIM12_BASE):
 			tim_clock = HAL_RCC_GetPCLK1Freq();
 			break;
-#endif //TIm12
+#endif //TIM12
 
 #ifdef TIM13
 		case reinterpret_cast<uint32_t>(TIM13_BASE):
@@ -82,13 +82,13 @@ namespace SabaneLib{
 		case reinterpret_cast<uint32_t>(TIM14_BASE):
 			tim_clock = HAL_RCC_GetPCLK1Freq();
 			break;
-#endif //TIm14
+#endif //TIM14
 
 #ifdef TIM15
 		case reinterpret_cast<uint32_t>(TIM15_BASE):
 			tim_clock = HAL_RCC_GetPCLK2Freq();
 			break;
-#endif //TIm15
+#endif //TIM15
 
 #ifdef TIM16
 		case reinterpret_cast<uint32_t>(TIM16_BASE):

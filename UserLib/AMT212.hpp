@@ -19,13 +19,13 @@ namespace SabaneLib{
 	class AMT21xState:public ContinuableEncoder{
 	private:
 		static constexpr size_t enc_resolution = 12;
-		const uint8_t enc_id = 0x36;
-
 		UART_HandleTypeDef* const uart;
 
-		uint8_t enc_val[2] = {0};
+		const uint8_t enc_id = 0x36;
 
 		int32_t coef_inv;
+
+		uint8_t enc_val[2] = {0};
 
 		enum class State{
 			REQUESTING,
@@ -34,11 +34,10 @@ namespace SabaneLib{
 		};
 		State state;
 
-
 	public:
 		AMT21xState(UART_HandleTypeDef* _uart,uint8_t _enc_id,float update_freq,bool is_inv = false)
-			:uart(_uart),
-			 ContinuableEncoder(enc_resolution,update_freq),
+			:ContinuableEncoder(enc_resolution,update_freq),
+			 uart(_uart),
 			 enc_id(_enc_id),
 			 coef_inv(is_inv?-1:1){
 			state = State::REQUESTING;

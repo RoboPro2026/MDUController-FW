@@ -88,7 +88,7 @@ namespace SabaneLib{
 
 #ifdef STM32G4xx_HAL_H
 				tx_header.DataLength = tx_frame.data_length;
-#else if STM32H7xx_HAL_H
+#elif STM32H7xx_HAL_H
 				tx_header.DataLength = tx_frame.data_length<<16;
 #endif
 				HAL_FDCAN_AddMessageToTxFifoQ(fdcan, &tx_header, const_cast<uint8_t*>(tx_frame.data));
@@ -109,7 +109,7 @@ namespace SabaneLib{
 
 #ifdef STM32G4xx_HAL_H
 				tx_header.DataLength = tx_frame.data_length;
-#else if STM32H7xx_HAL_H
+#elif STM32H7xx_HAL_H
 				tx_header.DataLength = tx_frame.data_length<<16;
 #endif
 
@@ -142,7 +142,7 @@ namespace SabaneLib{
 
 #ifdef STM32G4xx_HAL_H
 			rx_frame.data_length = rx_header.DataLength;
-#else if STM32H7xx_HAL_H
+#elif STM32H7xx_HAL_H
 			rx_frame.data_length = rx_header.DataLength>>16;
 #endif
 

@@ -28,7 +28,7 @@ public:
 		FUNCTION =  0b10,
 		ANALOG = 0b11 //reset
 	};
-	void set_input_mode(Mode m){
+	void set_io_mode(Mode m){
 		//LLのLL_GPIO_SetPinModeを移植
 		MODIFY_REG(port->MODER, (GPIO_MODER_MODE0 << (POSITION_VAL(pin) * 2U)), (static_cast<int>(m) << (POSITION_VAL(pin) * 2U)));
 	}
