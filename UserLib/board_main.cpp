@@ -9,9 +9,12 @@
 #include "CommonLib/fdcan_control.hpp"
 #include "CommonLib/gpio.hpp"
 #include "CommonLib/sequencable_io.hpp"
+#include "CommonLib/slcan.hpp"
+#include "CommonLib/serial_if.hpp"
 #include "AMT212.hpp"
 
 #include <array>
+#include <stdio.h>
 
 extern FDCAN_HandleTypeDef hfdcan2;
 extern FDCAN_HandleTypeDef hfdcan3;
@@ -130,6 +133,7 @@ void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t Bu
 	}else if(hfdcan == be::can_md.get_handler()){
 		be::can_md.tx_interrupt_task();
 	}
+	be::md_state_led[2].out_weak(1.0);
 }
 
 //timer
@@ -138,24 +142,64 @@ void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t Bu
 //メイン関数
 extern "C"{
 void cppmain(void){
-
+	HAL_Delay(500);
+	printf("start\r\n");
+	HAL_Delay(100);
 	be::can_main.set_filter_free(0,SabaneLib::CanFilterMode::ONLY_EXT);
 	be::can_main.start();
-	//TODO:STD_AND_EXTが本当に使えないのか実験
-	be::can_md.set_filter_free(0,SabaneLib::CanFilterMode::ONLY_STD);
-	be::can_md.start();
+	printf("can init\r\n");
+//	//TODO:STD_AND_EXTが本当に使えないのか実験
+//	be::can_md.set_filter_free(0,SabaneLib::CanFilterMode::ONLY_STD);
+//	be::can_md.start();
+//
+//	be::LED_r.io->start();
+//	be::LED_g.io->start();
+//	be::LED_b.io->start();
 
-	be::LED_r.io->start();
-	be::LED_g.io->start();
-	be::LED_b.io->start();
+	be::md_state_led[2].out_weak(1.0);
 
 	while(1){
-		for(auto &e: BoardElement::encs){
-			e.request_position();
-		}
+		be::md_state_led[2].out_weak(1.0);
 		HAL_Delay(100);
+		be::md_state_led[2].out_weak(0.0);
+		HAL_Delay(100);
+
+		SabaneLib::Protocol::DataPacket dp;
+		SabaneLib::CanFrame cf;
+		SabaneLib::SerialData sd;
+
+		dp.board_ID = 2;
+		dp.priority = 1;
+		dp.data_type = SabaneLib::Protocol::DataType::RMC_DATA;
+		dp.writer().write<int32_t>(0x0123'4567);
+		cf.decode_common_data_packet(dp);
+
+		printf("can buff:%d\r\n",be::can_main.tx_available());
+
+		cf.is_ext_id = true;
+		be::can_main.tx(cf);
+		printf("can tx\r\n");
+
+		HAL_Delay(100);
+		if(be::can_main.rx_available()){
+			be::can_main.rx(cf);
+			printf("rx can!\r\n");
+		}
+		sd.size = SabaneLib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
+
+		printf("hello:%s\r\n",sd.data);
+//		for(auto &e: BoardElement::encs){
+//			e.request_position();
+//		}
+//		HAL_Delay(100);
 	}
 }
+
+int _write(int file, char *ptr, int len) {
+	HAL_UART_Transmit(&huart2, (uint8_t*) ptr, len,100);
+	return len;
+}
+
 }
 
 

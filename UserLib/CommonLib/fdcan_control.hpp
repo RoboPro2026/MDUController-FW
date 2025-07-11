@@ -46,6 +46,7 @@ namespace SabaneLib{
 		std::unique_ptr<IRingBuffer<CanFrame> > tx_buff;
 
 		const FdCanRxFifoParams &rx_fifo;
+
 	public:
 		FdCanComm(FDCAN_HandleTypeDef *_fdcan,std::unique_ptr<IRingBuffer<CanFrame>> _rx_buff,std::unique_ptr<IRingBuffer<CanFrame>> &&_tx_buff,const FdCanRxFifoParams &_rx_fifo)
 			:fdcan(_fdcan),
@@ -79,13 +80,17 @@ namespace SabaneLib{
 				tx_header.Identifier = tx_frame.id;
 				tx_header.IdType = tx_frame.is_ext_id ? FDCAN_EXTENDED_ID : FDCAN_STANDARD_ID;
 				tx_header.TxFrameType = tx_frame.is_remote ? FDCAN_REMOTE_FRAME : FDCAN_DATA_FRAME;
-				tx_header.DataLength = (uint32_t)tx_frame.data_length << 16;
 				tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
 				tx_header.BitRateSwitch = FDCAN_BRS_OFF;
 				tx_header.FDFormat = FDCAN_CLASSIC_CAN;
 				tx_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
 				tx_header.MessageMarker = 0;
 
+#ifdef STM32G4xx_HAL_H
+				tx_header.DataLength = tx_frame.data_length;
+#else if STM32H7xx_HAL_H
+				tx_header.DataLength = tx_frame.data_length<<16;
+#endif
 				HAL_FDCAN_AddMessageToTxFifoQ(fdcan, &tx_header, const_cast<uint8_t*>(tx_frame.data));
 			}
 		}
@@ -96,12 +101,17 @@ namespace SabaneLib{
 				tx_header.Identifier = tx_frame.id;
 				tx_header.IdType = tx_frame.is_ext_id ? FDCAN_EXTENDED_ID : FDCAN_STANDARD_ID;
 				tx_header.TxFrameType = tx_frame.is_remote ? FDCAN_REMOTE_FRAME : FDCAN_DATA_FRAME;
-				tx_header.DataLength = (uint32_t)tx_frame.data_length << 16;
 				tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
 				tx_header.BitRateSwitch = FDCAN_BRS_OFF;
 				tx_header.FDFormat = FDCAN_CLASSIC_CAN;
 				tx_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
 				tx_header.MessageMarker = 0;
+
+#ifdef STM32G4xx_HAL_H
+				tx_header.DataLength = tx_frame.data_length;
+#else if STM32H7xx_HAL_H
+				tx_header.DataLength = tx_frame.data_length<<16;
+#endif
 
 				HAL_FDCAN_AddMessageToTxFifoQ(fdcan, &tx_header, const_cast<uint8_t*>(tx_frame.data));
 			}else{
@@ -125,10 +135,17 @@ namespace SabaneLib{
 
 			HAL_FDCAN_GetRxMessage(fdcan, rx_fifo.no, &rx_header, rx_frame.data);
 
-			rx_frame.data_length = rx_header.DataLength>>16;
+			rx_frame.data_length = rx_header.DataLength;
 			rx_frame.is_remote = rx_header.RxFrameType == FDCAN_REMOTE_FRAME ? true : false;
 			rx_frame.is_ext_id = rx_header.IdType == FDCAN_EXTENDED_ID ? true : false;
 			rx_frame.id = rx_header.Identifier;
+
+#ifdef STM32G4xx_HAL_H
+			rx_frame.data_length = rx_header.DataLength;
+#else if STM32H7xx_HAL_H
+			rx_frame.data_length = rx_header.DataLength>>16;
+#endif
+
 
 			rx_buff->push(rx_frame);
 		}

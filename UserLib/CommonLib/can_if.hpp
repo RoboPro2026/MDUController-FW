@@ -56,9 +56,7 @@ namespace SabaneLib{
 		void decode_common_data_packet(const Protocol::DataPacket &dp){
 			is_ext_id = true;
 			is_remote = dp.is_request;
-
 			id = dp.generate_id();
-
 			data_length = dp.data_length;
 			memcpy(data, dp.data,dp.data_length);
 		}
