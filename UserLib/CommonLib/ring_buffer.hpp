@@ -8,7 +8,7 @@
 #ifndef RING_BUFFER_HPP_
 #define RING_BUFFER_HPP_
 
-#include <stdbool.h>
+#include <cstdbool>
 
 namespace SabaneLib{
 

@@ -40,7 +40,7 @@ namespace SabaneLib{
 		int32_t turn_count = 0;
 
 		//speed
-		const int32_t k_speed;
+		const int32_t coef_angle_to_speed;
 		int32_t angle_buff[16];
 		uint32_t head = 0;
 		const uint32_t head_mask = (sizeof(angle_buff)/sizeof(float) - 1);
@@ -51,9 +51,9 @@ namespace SabaneLib{
 	public:
 		ContinuableEncoder(size_t _resolution_bit,float update_freq):
 			resolution_bit(_resolution_bit),
-			resolution(1<<resolution_bit),
+			resolution(1u<<resolution_bit),
 			mask(resolution -1),
-			k_speed(update_freq/(sizeof(angle_buff)/sizeof(int32_t))),
+			coef_angle_to_speed(update_freq/(sizeof(angle_buff)/sizeof(int32_t))),
 			coef_angle_to_rad(2*M_PI/static_cast<float>(resolution))
 			{
 		}
@@ -84,7 +84,27 @@ namespace SabaneLib{
 			uint32_t head_tmp = head;
 			head = (head + 1) & head_mask;
 			angle_buff[head_tmp] = angle;
-			speed = (angle_buff[head_tmp] - angle_buff[head])*k_speed;
+			speed = (angle_buff[head_tmp] - angle_buff[head])*coef_angle_to_speed;
+
+			return angle;
+		}
+
+		virtual int32_t update(uint32_t _angle,uint32_t _speed){
+			int32_t new_angle = _angle&mask;
+
+			//solve angle
+			int32_t angle_top = (new_angle >> (resolution_bit-1))&0b1;
+			int32_t prev_angle_top = (angle >> (resolution_bit-1))&0b1;
+
+			if(prev_angle_top == 1 && angle_top == 0 && speed > 0){
+				turn_count ++;
+			}else if(prev_angle_top == 0 && angle_top == 1 && speed < 0){
+				turn_count --;
+			}
+
+			angle = new_angle + resolution*turn_count;
+
+			speed = _speed;
 
 			return angle;
 		}
