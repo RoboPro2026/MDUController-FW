@@ -19,6 +19,7 @@ namespace SabaneLib{
 		float power;
 		uint32_t interval;
 	};
+	inline constexpr Note end_of_io_sequence{0.0f,0};
 }
 
 inline bool operator==(const SabaneLib::Note& s1,const SabaneLib::Note& s2){
@@ -49,14 +50,16 @@ namespace SabaneLib{
 		}
 
 	public:
-		static constexpr Note end_of_pwm_sequence{0.0f,0};
 		std::unique_ptr<T> io;
 
 		SequencableIO(std::unique_ptr<T> _io):
 			io(std::move(_io)){
 		}
 
-		void play(const Note *pattern){
+		bool play(const Note *pattern,bool force = true){
+			if(is_playing() && not force){
+				return false;
+			}
 			playing_pattern = pattern;
 			pattern_count = 0;
 			interval_count = 0;
@@ -64,6 +67,7 @@ namespace SabaneLib{
 			interval_count = playing_pattern[pattern_count].interval;
 
 			(*io)(playing_pattern[pattern_count].power);
+			return true;
 		}
 
 		bool is_playing(void){
@@ -79,7 +83,7 @@ namespace SabaneLib{
 			if(interval_count <= 0){
 				++pattern_count;
 
-				if(playing_pattern[pattern_count] == end_of_pwm_sequence){
+				if(playing_pattern[pattern_count] == end_of_io_sequence){
 					playing_pattern = nullptr;
 
 					set_duty(0.0f);
@@ -91,7 +95,7 @@ namespace SabaneLib{
 			}
 		}
 
-		void out_weak(float val){
+		void out_not_force(float val){ //何らかのシーケンスを実行中の場合書き込まない
 			if(not is_playing()){
 				set_duty(val);
 			}

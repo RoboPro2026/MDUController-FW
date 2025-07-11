@@ -2110,7 +2110,6 @@ HAL_StatusTypeDef HAL_FDCAN_AddMessageToTxFifoQ(FDCAN_HandleTypeDef *hfdcan, con
   uint32_t PutIndex;
 
   /* Check function parameters */
-
   assert_param(IS_FDCAN_ID_TYPE(pTxHeader->IdType));
   if (pTxHeader->IdType == FDCAN_STANDARD_ID)
   {
@@ -3529,7 +3528,7 @@ static void FDCAN_CopyMessageToRAM(const FDCAN_HandleTypeDef *hfdcan, const FDCA
                   ((uint32_t)pTxData[ByteCounter + 1U] << 8U)  |
                   (uint32_t)pTxData[ByteCounter]);
     TxAddress++;
-  }//Error_Handler();
+  }
 }
 
 /**

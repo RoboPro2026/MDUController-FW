@@ -11,7 +11,9 @@
 #include "CommonLib/sequencable_io.hpp"
 #include "CommonLib/slcan.hpp"
 #include "CommonLib/serial_if.hpp"
+#include "CommonLib/timer_interruption_control.hpp"
 #include "AMT212.hpp"
+#include "LED_pattern.hpp"
 
 #include <array>
 #include <stdio.h>
@@ -25,7 +27,7 @@ extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
 
 extern TIM_HandleTypeDef htim1;
-
+extern TIM_HandleTypeDef htim15;
 
 namespace BoardElement{
 	namespace TmpMemoryPool{
@@ -85,6 +87,8 @@ namespace BoardElement{
 		std::unique_ptr<SabaneLib::GPIO> (new(TmpMemoryPool::led2_gpio) SabaneLib::GPIO{LED2_GPIO_Port,LED2_Pin}),
 		std::unique_ptr<SabaneLib::GPIO> (new(TmpMemoryPool::led3_gpio) SabaneLib::GPIO{LED3_GPIO_Port,LED3_Pin})
 	};
+
+	auto test_timer = SabaneLib::InterruptionTimerHard{&htim15};
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,7 +129,6 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 	}else if(hfdcan == be::can_md.get_handler()){
 		be::can_md.rx_interrupt_task();
 	}
-	be::md_state_led[2].io->toggle();
 }
 
 void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t BufferIndexes){
@@ -134,11 +137,15 @@ void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t Bu
 	}else if(hfdcan == be::can_md.get_handler()){
 		be::can_md.tx_interrupt_task();
 	}
-
 }
 
 //timer
-
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if(htim == be::test_timer.get_handler()){
+		be::test_timer.interrupt_task();
+	}
+}
 
 //メイン関数
 extern "C"{
@@ -149,6 +156,15 @@ void cppmain(void){
 	be::can_main.set_filter_free(0,SabaneLib::CanFilterMode::ONLY_EXT);
 	be::can_main.start();
 	printf("can init\r\n");
+
+	printf("tim15_f:%d\r\n",SabaneLib::get_timer_clock_freq(be::test_timer.get_handler()));
+
+	be::test_timer.set_task([](){
+		be::md_state_led[2].update();
+	});
+	be::test_timer.set_and_start(0.001f);
+
+
 //	//TODO:STD_AND_EXTが本当に使えないのか実験
 //	be::can_md.set_filter_free(0,SabaneLib::CanFilterMode::ONLY_STD);
 //	be::can_md.start();
@@ -158,6 +174,7 @@ void cppmain(void){
 //	be::LED_b.io->start();
 
 	while(1){
+		be::md_state_led[2].play(BoardLib::LEDPattern::setting,false);
 
 		HAL_Delay(100);
 
