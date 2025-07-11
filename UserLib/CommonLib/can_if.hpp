@@ -37,24 +37,15 @@ namespace SabaneLib{
 			return Protocol::ByteReader(data,sizeof(data));
 		}
 
-		enum class CanIDBitPos{
-			PRIORITY_BIT = 24,
-			DATA_TYPE_BIT = 20,
-			BOARD_ID_BIT = 16,
-			REGISTER_ID_BIT = 0
-		};
-
-		std::optional<Protocol::DataPacket> to_common_data_packet(void){
+		std::optional<Protocol::DataPacket> encode_common_data_packet(void){
 			if(not is_ext_id){
 				return std::nullopt;
 			}
 
 			Protocol::DataPacket dp;
 			dp.is_request = is_remote;
-			dp.priority = (id>> static_cast<int>(CanIDBitPos::PRIORITY_BIT))&0xF;
-			dp.data_type = static_cast<Protocol::DataType>((id >> static_cast<int>(CanIDBitPos::DATA_TYPE_BIT))&0xF);
-			dp.board_ID = (id >> static_cast<int>(CanIDBitPos::BOARD_ID_BIT))&0xF;
-			dp.register_ID = id & 0xFFFF;
+
+			dp.apply_id(id);
 
 			memcpy(dp.data, data,data_length);
 			dp.data_length = data_length;
@@ -66,10 +57,7 @@ namespace SabaneLib{
 			is_ext_id = true;
 			is_remote = dp.is_request;
 
-			id = ((dp.priority&0xF)<<static_cast<int>(CanIDBitPos::PRIORITY_BIT))
-					| ((static_cast<uint8_t>(dp.data_type)&0xF) << static_cast<int>(CanIDBitPos::DATA_TYPE_BIT) )
-					| ((dp.board_ID&0xF) << static_cast<int>(CanIDBitPos::BOARD_ID_BIT))
-					| (dp.register_ID&0xFFFF);
+			id = dp.generate_id();
 
 			data_length = dp.data_length;
 			memcpy(data, dp.data,dp.data_length);
