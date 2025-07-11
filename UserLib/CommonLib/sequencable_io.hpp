@@ -5,48 +5,65 @@
  *      Author: gomas
  */
 
-#ifndef PROGRAMABLE_LED_HPP_
-#define PROGRAMABLE_LED_HPP_
+#ifndef SEQUENCABLE_IO_HPP_
+#define SEQUENCABLE_IO_HPP_
 
 #include "pwm.hpp"
 #include "main.h"
 
 #include <memory>
+#include "gpio.hpp"
 
 namespace SabaneLib{
-	struct PWMState{
+	struct Note{
 		float power;
 		uint32_t interval;
 	};
 }
 
-inline bool operator==(const SabaneLib::PWMState& s1,const SabaneLib::PWMState& s2){
+inline bool operator==(const SabaneLib::Note& s1,const SabaneLib::Note& s2){
 	return (s1.power == s2.power) && (s1.interval == s2.interval);
 }
 
 namespace SabaneLib{
-	class ProgramablePWM{
+	template<typename T>
+	concept Sequencable = std::derived_from<T, IPWM> || std::is_same_v<T, GPIO>;
+
+	template<Sequencable T>
+	class SequencableIO{
 	private:
-		const PWMState *playing_pattern = nullptr;
+		const Note *playing_pattern = nullptr;
 		uint32_t pattern_count = 0;
 		uint32_t interval_count = 0;
 
-	public:
-		static constexpr PWMState end_of_pwm_sequence{0.0f,0};
-		std::unique_ptr<IPWM> pwm;
-
-		ProgramablePWM(std::unique_ptr<IPWM> _pwm):
-			pwm(std::move(_pwm)){
+		inline void set_duty(float v){
+			if constexpr(std::derived_from<T, IPWM>){
+				(*io)(0.0f);
+			}else{
+				if(v > 0.0f){
+					(*io)(true);
+				}else{
+					(*io)(false);
+				}
+			}
 		}
 
-		void play(const PWMState *pattern){
+	public:
+		static constexpr Note end_of_pwm_sequence{0.0f,0};
+		std::unique_ptr<T> io;
+
+		SequencableIO(std::unique_ptr<T> _io):
+			io(std::move(_io)){
+		}
+
+		void play(const Note *pattern){
 			playing_pattern = pattern;
 			pattern_count = 0;
 			interval_count = 0;
 
 			interval_count = playing_pattern[pattern_count].interval;
 
-			(*pwm)(playing_pattern[pattern_count].power);
+			(*io)(playing_pattern[pattern_count].power);
 		}
 
 		bool is_playing(void){
@@ -54,6 +71,7 @@ namespace SabaneLib{
 		}
 
 		void update(void){
+
 			if(playing_pattern == nullptr){
 				return;
 			}
@@ -63,16 +81,20 @@ namespace SabaneLib{
 
 				if(playing_pattern[pattern_count] == end_of_pwm_sequence){
 					playing_pattern = nullptr;
-					(*pwm)(0.0f);
+
+					set_duty(0.0f);
+
 					return;
 				}
 				interval_count = playing_pattern[pattern_count].interval;
-				(*pwm)(playing_pattern[pattern_count].power);
+				set_duty(playing_pattern[pattern_count].power);
 			}
 		}
 
 		void out_weak(float val){
-			if(not is_playing())(*pwm)(val);
+			if(not is_playing()){
+				set_duty(val);
+			}
 		}
 	};
 }
@@ -81,4 +103,4 @@ namespace SabaneLib{
 
 
 
-#endif /* PROGRAMABLE_LED_HPP_ */
+#endif /* SEQUENCABLE_IO_HPP_ */

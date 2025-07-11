@@ -25,9 +25,6 @@ namespace SabaneLib{
 
 		virtual uint32_t get_period(void)const = 0;
 
-		//更新処理(ソフトウェアPWM用)
-		virtual void update(void) = 0;
-
 		virtual ~IPWM(){}
 	};
 
@@ -59,10 +56,6 @@ namespace SabaneLib{
 
 		uint32_t get_period(void)const override{
 			return __HAL_TIM_GET_AUTORELOAD(tim);
-		}
-
-		void update(void)override{
-			//nop
 		}
 
 		void start(void){
@@ -114,15 +107,13 @@ namespace SabaneLib{
 		}
 
 		//timer interrupt function
-		void update(void)override{
+		void update(void){
 			//bool*intの計算となっているので諸説
 			//条件分岐より早いので採用
 			//C言語においてstatic_cast<int>(bool)は0 or 1が保証されているようだ
 			count = static_cast<int>(count < period)*(count+1);
 			port->BSRR = pin << (16*static_cast<int>(count >= duty));
 		}
-
-
 	};
 
 }

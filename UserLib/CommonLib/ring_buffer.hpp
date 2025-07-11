@@ -33,7 +33,7 @@ namespace SabaneLib{
 		size_t tail = 0;
 		size_t data_count = 0;
 
-		T data_buff[size] = {0};
+		T data_buff[size];
 	public:
 		bool push(const T &input)override{
 			data_buff[head] = input;

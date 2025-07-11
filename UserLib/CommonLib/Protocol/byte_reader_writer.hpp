@@ -9,10 +9,10 @@
 #define BYTE_READER_WRITER_HPP_
 
 #include <optional>
-#include <string.h>
-#include <stdint.h>
+#include <cstring>
+#include <cstdint>
 
-namespace SabaneLib{
+namespace SabaneLib::Protocol{
 
 	class ByteWriter{
 	  uint8_t *const begin;

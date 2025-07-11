@@ -25,12 +25,12 @@ namespace SabaneLib{
 
 		uint8_t enc_val[2] = {0};
 
-		int32_t coef_inv = 1;
+		int32_t coef_inv;
 
 		enum class State{
-			READY,
 			REQUESTING,
-			WAITING
+			WAITING_RESPOSNCE,
+			DATA_READY,
 		};
 		State state;
 
@@ -45,7 +45,7 @@ namespace SabaneLib{
 		}
 
 		bool is_ready(void){
-			return (state == State::READY) ? true : false;
+			return (state == State::DATA_READY) ? true : false;
 		}
 
 		bool is_inv(void){
@@ -69,14 +69,14 @@ namespace SabaneLib{
 		//HAL_UART_TxCpltCallback内におくこと
 		void tx_interrupt_task(void){
 			HAL_UART_Receive_IT(uart, enc_val, 2);
-			state = State::WAITING;
+			state = State::WAITING_RESPOSNCE;
 		}
 
 		//HAL_UART_RxCpltCallback内におくこと
 		void rx_interrupt_task(void){
 			uint16_t raw_angle = enc_val[1]<<8 | enc_val[0];
 			update(raw_angle*coef_inv);
-			state = State::READY;
+			state = State::DATA_READY;
 		}
 
 		UART_HandleTypeDef* get_handler(void){
