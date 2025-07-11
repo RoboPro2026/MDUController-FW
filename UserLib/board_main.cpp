@@ -159,9 +159,7 @@ void cppmain(void){
 	be::md_state_led[2].out_weak(1.0);
 
 	while(1){
-		be::md_state_led[2].out_weak(1.0);
-		HAL_Delay(100);
-		be::md_state_led[2].out_weak(0.0);
+		be::md_state_led[2].io->toggle();
 		HAL_Delay(100);
 
 		SabaneLib::Protocol::DataPacket dp;

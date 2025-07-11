@@ -42,6 +42,14 @@ public:
 		//state==1ならシフトせずBSRR.BSに書き込み->セット
 		port->BSRR = pin << (16*static_cast<int>(! state));
 	}
+
+	void toggle(void){
+		if((*this)()){
+			(*this)(false);
+		}else{
+			(*this)(false);
+		}
+	}
 };
 
 }
