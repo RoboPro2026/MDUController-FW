@@ -25,6 +25,30 @@ namespace BoardLib::LEDPattern{
 		{0.0f,100},
 		SabaneLib::end_of_io_sequence
 	};
+
+	inline constexpr SabaneLib::Note test[]={
+		{1.0f,100},
+		{0.0f,100},
+		{1.0f,100},
+		{0.0f,100},
+		{1.0f,100},
+		{0.0f,100},
+
+		{1.0f,500},
+		{0.0f,100},
+		{1.0f,500},
+		{0.0f,100},
+		{1.0f,500},
+		{0.0f,100},
+
+		{1.0f,100},
+		{0.0f,100},
+		{1.0f,100},
+		{0.0f,100},
+		{1.0f,100},
+		{0.0f,1000},
+		SabaneLib::end_of_io_sequence
+	};
 }
 
 

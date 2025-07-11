@@ -174,7 +174,7 @@ void cppmain(void){
 //	be::LED_b.io->start();
 
 	while(1){
-		be::md_state_led[2].play(BoardLib::LEDPattern::setting,false);
+		be::md_state_led[2].play(BoardLib::LEDPattern::test,false);
 
 		HAL_Delay(100);
 
