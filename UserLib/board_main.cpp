@@ -125,6 +125,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 	}else if(hfdcan == be::can_md.get_handler()){
 		be::can_md.rx_interrupt_task();
 	}
+	be::md_state_led[2].io->toggle();
 }
 
 void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t BufferIndexes){
@@ -133,7 +134,7 @@ void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t Bu
 	}else if(hfdcan == be::can_md.get_handler()){
 		be::can_md.tx_interrupt_task();
 	}
-	be::md_state_led[2].out_weak(1.0);
+
 }
 
 //timer
@@ -156,10 +157,8 @@ void cppmain(void){
 //	be::LED_g.io->start();
 //	be::LED_b.io->start();
 
-	be::md_state_led[2].out_weak(1.0);
-
 	while(1){
-		be::md_state_led[2].io->toggle();
+
 		HAL_Delay(100);
 
 		SabaneLib::Protocol::DataPacket dp;

@@ -47,7 +47,7 @@ public:
 		if((*this)()){
 			(*this)(false);
 		}else{
-			(*this)(false);
+			(*this)(true);
 		}
 	}
 };
