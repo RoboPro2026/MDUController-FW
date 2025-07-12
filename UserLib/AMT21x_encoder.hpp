@@ -5,8 +5,8 @@
  *      Author: gomas
  */
 
-#ifndef AMT212_HPP_
-#define AMT212_HPP_
+#ifndef AMT21X_ENCODER_HPP_
+#define AMT21X_ENCODER_HPP_
 
 #include "CommonLib/encoder.hpp"
 
@@ -14,9 +14,8 @@
 
 #ifdef HAL_UART_MODULE_ENABLED
 
-namespace SabaneLib{
-	//AS5600による制御
-	class AMT21xState:public ContinuableEncoder{
+namespace BoardLib{
+	class AMT21xEnc:public SabaneLib::ContinuableEncoder{
 	private:
 		static constexpr size_t enc_resolution = 12;
 		UART_HandleTypeDef* const uart;
@@ -35,7 +34,7 @@ namespace SabaneLib{
 		State state;
 
 	public:
-		AMT21xState(UART_HandleTypeDef* _uart,uint8_t _enc_id,float update_freq,bool is_inv = false)
+		AMT21xEnc(UART_HandleTypeDef* _uart,uint8_t _enc_id,float update_freq,bool is_inv = false)
 			:ContinuableEncoder(enc_resolution,update_freq),
 			 uart(_uart),
 			 enc_id(_enc_id),
@@ -86,4 +85,4 @@ namespace SabaneLib{
 
 #endif //HAL_UART_MODULE_ENABLED
 
-#endif /* AMT212_HPP_ */
+#endif /* AMT21X_ENCODER_HPP_ */

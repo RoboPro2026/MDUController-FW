@@ -13,12 +13,13 @@
 #include "CommonLib/slcan.hpp"
 #include "CommonLib/serial_if.hpp"
 #include "CommonLib/timer_interruption_control.hpp"
-#include "AMT212.hpp"
 #include "LED_pattern.hpp"
 
 #include <array>
 #include <stdio.h>
 #include <bit>
+#include "AMT21x_encoder.hpp"
+#include "motor_control.hpp"
 
 extern FDCAN_HandleTypeDef hfdcan2;
 extern FDCAN_HandleTypeDef hfdcan3;
@@ -50,11 +51,11 @@ namespace BoardElement{
 		uint8_t led3_gpio[sizeof(SabaneLib::GPIO)];
 	}
 
-	auto encs = std::array<SabaneLib::AMT21xState,4>{
-		SabaneLib::AMT21xState(&huart5,0x54,1000.0f),
-		SabaneLib::AMT21xState(&huart3,0x54,1000.0f),
-		SabaneLib::AMT21xState(&hlpuart1,0x54,1000.0f),
-		SabaneLib::AMT21xState(&huart2,0x54,1000.0f),
+	auto encs = std::array<BoardLib::AMT21xEnc,4>{
+		BoardLib::AMT21xEnc(&huart5,0x54,1000.0f),
+		BoardLib::AMT21xEnc(&huart3,0x54,1000.0f),
+		BoardLib::AMT21xEnc(&hlpuart1,0x54,1000.0f),
+		BoardLib::AMT21xEnc(&huart2,0x54,1000.0f),
 	};
 
 	auto can_main = SabaneLib::FdCanComm{
@@ -93,6 +94,8 @@ namespace BoardElement{
 	};
 
 	auto test_timer = SabaneLib::InterruptionTimerHard{&htim15};
+
+	auto motor = BoardLib::C6x0Controller{1};
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
