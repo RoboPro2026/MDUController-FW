@@ -13,6 +13,7 @@
 #include <cfloat>
 #include <algorithm>
 #include <limits>
+#include <utility>
 
 namespace CommonLib{
 
@@ -67,10 +68,12 @@ public:
 		limit_min = -_limit_max;
 		limit_max = _limit_max;
 	}
-
 	void set_limit(float _limit_min,float _limit_max){
 		limit_min = _limit_min;
 		limit_max = _limit_max;
+	}
+	std::pair<float,float> get_limit(void)const{
+		return std::pair<float,float>{limit_min,limit_max};
 	}
 
 	virtual ~PIController(){}
@@ -115,7 +118,7 @@ public:
 		kd = _kd*pid_freq;
 		lpf.set_param(pid_freq,lpf_eta*_kd);
 	}
-	float get_d_gain(void)const { return kd/pid_freq; }
+	float get_d_gain(void)const{ return kd/pid_freq; }
 
 	void reset(void)override{
 		error_sum = 0;
@@ -123,7 +126,9 @@ public:
 	}
 };
 
-
+///////////////////////////////////////////////////////////////////////////////
+//builder classes
+///////////////////////////////////////////////////////////////////////////////
 class PIBuilder{
 public:
 	float freq = 1.0f;
