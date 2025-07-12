@@ -64,7 +64,7 @@ namespace BoardElement{
 				new(TmpMemoryPool::can_main_tx_buff) CommonLib::RingBuffer<CommonLib::CanFrame,5>{}),
 		std::unique_ptr<CommonLib::RingBuffer<CommonLib::CanFrame,5>>(
 				new(TmpMemoryPool::can_main_rx_buff) CommonLib::RingBuffer<CommonLib::CanFrame,5>{}),
-		CommonLib::FdCanRxFifo0
+		CommonLib::FdCanRxFifo1
 	};
 
 	auto can_md = CommonLib::FdCanComm{
@@ -73,7 +73,7 @@ namespace BoardElement{
 				new(TmpMemoryPool::can_md_tx_buff) CommonLib::RingBuffer<CommonLib::CanFrame,5>{}),
 		std::unique_ptr<CommonLib::RingBuffer<CommonLib::CanFrame,5>>(
 				new(TmpMemoryPool::can_md_rx_buff) CommonLib::RingBuffer<CommonLib::CanFrame,5>{}),
-		CommonLib::FdCanRxFifo0
+		CommonLib::FdCanRxFifo1
 	};
 
 	auto LED_r = CommonLib::SequencableIO<CommonLib::PWMHard>{
@@ -136,6 +136,15 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 	}else if(hfdcan == be::can_md.get_handler()){
 		be::can_md.rx_interrupt_task();
 	}
+	be::md_state_led[2].play(BoardLib::LEDPattern::ok,false);
+}
+void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs){
+	if(hfdcan == be::can_main.get_handler()){
+		be::can_main.rx_interrupt_task();
+	}else if(hfdcan == be::can_md.get_handler()){
+		be::can_md.rx_interrupt_task();
+	}
+	//be::md_state_led[2].play(BoardLib::LEDPattern::ok,false);
 }
 
 void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t BufferIndexes){
@@ -164,75 +173,68 @@ void cppmain(void){
 	HAL_Delay(500);
 //	printf("start\r\n");
 	HAL_Delay(100);
-	be::can_main.set_filter_free(0,CommonLib::CanFilterMode::ONLY_EXT);
+	//be::can_main.set_filter_free(0,CommonLib::CanFilterMode::ONLY_EXT);
+	be::can_main.set_filter(0,0x013,0x0FF,CommonLib::CanFilterMode::ONLY_STD);
 	be::can_main.start();
-//	printf("can init\r\n");
-//
-//	printf("tim15_f:%d\r\n",CommonLib::get_timer_clock_freq(be::test_timer.get_handler()));
-	//uint32_t rand = 0;
+	printf("can init\r\n");
 
+	printf("tim15_f:%d\r\n",CommonLib::get_timer_clock_freq(be::test_timer.get_handler()));
 
 	be::test_timer.set_task([](){
 		be::md_state_led[2].update();
-		int32_t rand;
-		HAL_RNG_GenerateRandomNumber(&hrng,(uint32_t*)(&rand));
-		float frand = rand*(1/static_cast<float>(std::numeric_limits<int32_t>().max()));
-		printf("%3.4f\r\n",filter(frand));
+//		int32_t rand;
+//		HAL_RNG_GenerateRandomNumber(&hrng,(uint32_t*)(&rand));
+//		float frand = rand*(1/static_cast<float>(std::numeric_limits<int32_t>().max()));
+//		printf("%3.4f\r\n",filter(frand));
 	});
 	be::test_timer.set_and_start(0.001f);
 
-
-//	//TODO:STD_AND_EXTが本当に使えないのか実験
-//	be::can_md.set_filter_free(0,CommonLib::CanFilterMode::ONLY_STD);
-//	be::can_md.start();
 //
 //	be::LED_r.io->start();
 //	be::LED_g.io->start();
 //	be::LED_b.io->start();
 
 	while(1){
-		be::md_state_led[2].play(BoardLib::LEDPattern::test,false);
-
-//		HAL_RNG_GenerateRandomNumber(&hrng,&rand);
-//		printf("%d\r\n",rand);
+		//be::md_state_led[2].play(BoardLib::LEDPattern::test,false);
 
 		HAL_Delay(100);
 
 //		//can test
-//		CommonLib::Protocol::DataPacket dp;
-//		CommonLib::CanFrame cf;
-//		CommonLib::SerialData sd;
-//
-//		dp.board_ID = 2;
-//		dp.priority = 1;
-//		dp.data_type = CommonLib::Protocol::DataType::RMC_DATA;
-//		dp.writer().write<int32_t>(0x0123'4567);
-//		cf.decode_common_data_packet(dp);
-//
-//		printf("can buff:%d\r\n",be::can_main.tx_available());
-//
-//		cf.is_ext_id = true;
-//		be::can_main.tx(cf);
-//		printf("can tx\r\n");
-//
-//		HAL_Delay(100);
-//		if(be::can_main.rx_available()){
-//			be::can_main.rx(cf);
-//			printf("rx can!\r\n");
-//		}
-//		sd.size = CommonLib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
-//
-//		printf("hello:%s\r\n",sd.data);
+		CommonLib::Protocol::DataPacket dp;
+		CommonLib::CanFrame cf;
+		CommonLib::SerialData sd;
 
-//		for(auto &e: BoardElement::encs){
-//			e.request_position();
-//		}
-//		HAL_Delay(100);
+		dp.board_ID = 2;
+		dp.priority = 1;
+		dp.data_type = CommonLib::Protocol::DataType::RMC_DATA;
+		dp.writer().write<int32_t>(0x0123'4567);
+		cf.decode_common_data_packet(dp);
+
+		printf("can buff:%d\r\n",be::can_main.tx_available());
+
+		cf.is_ext_id = false;
+		cf.id = 0x012;
+		be::can_main.tx(cf);
+		printf("can tx\r\n");
+
+		HAL_Delay(100);
+		if(be::can_main.rx_available()){
+			be::can_main.rx(cf);
+			printf("rx can!\r\n");
+		}
+		sd.size = CommonLib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
+
+		printf("hello:%s\r\n",sd.data);
+
+		for(auto &e: BoardElement::encs){
+			e.request_position();
+		}
+		HAL_Delay(100);
 	}
 }
 
 int _write(int file, char *ptr, int len) {
-	HAL_UART_Transmit_IT(&huart2, (uint8_t*) ptr, len);
+	HAL_UART_Transmit(&huart2, (uint8_t*) ptr, len,100);
 	return len;
 }
 

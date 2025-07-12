@@ -158,7 +158,7 @@ namespace CommonLib{
 			}
 		}
 
-		void set_filter_free(uint32_t filter_no,CanFilterMode fmode = CanFilterMode::ONLY_STD){
+		bool set_filter_free(uint32_t filter_no,CanFilterMode fmode = CanFilterMode::ONLY_STD){
 			assert(fmode != CanFilterMode::STD_AND_EXT);
 
 			FDCAN_FilterTypeDef  filter;
@@ -169,7 +169,28 @@ namespace CommonLib{
 			filter.FilterID1 = 0x000;
 			filter.FilterID2 = 0x000;
 
-			HAL_FDCAN_ConfigFilter(fdcan, &filter);
+			if(HAL_FDCAN_ConfigFilter(fdcan, &filter)==HAL_OK){
+				return true;
+			}else{
+				return false;
+			}
+		}
+		bool set_filter(uint32_t filter_no,uint32_t id,uint32_t mask,CanFilterMode fmode){
+			assert(fmode != CanFilterMode::STD_AND_EXT);
+
+			FDCAN_FilterTypeDef  filter;
+			filter.IdType = fmode == CanFilterMode::ONLY_EXT ? FDCAN_EXTENDED_ID : FDCAN_STANDARD_ID;
+			filter.FilterIndex = filter_no;
+			filter.FilterType = FDCAN_FILTER_MASK;
+			filter.FilterConfig = rx_fifo.filter;
+			filter.FilterID1 = id;
+			filter.FilterID2 = mask;
+
+			if(HAL_FDCAN_ConfigFilter(fdcan, &filter)==HAL_OK){
+				return true;
+			}else{
+				return false;
+			}
 		}
 
 		FDCAN_HandleTypeDef *get_handler(void)const{
