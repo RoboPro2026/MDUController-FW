@@ -49,12 +49,12 @@ namespace CommonLib{
 		const float coef_angle_to_rad;
 
 	public:
-		ContinuableEncoder(size_t _resolution_bit,float update_freq):
+		ContinuableEncoder(size_t _resolution_bit,float update_freq,float gear_ratio = 1.0f):
 			resolution_bit(_resolution_bit),
 			resolution(1u<<resolution_bit),
 			mask(resolution -1),
 			coef_angle_to_speed(update_freq/(sizeof(angle_buff)/sizeof(int32_t))),
-			coef_angle_to_rad(2*M_PI/static_cast<float>(resolution))
+			coef_angle_to_rad(2*M_PI/(gear_ratio * static_cast<float>(resolution)))
 			{
 		}
 

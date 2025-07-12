@@ -30,9 +30,6 @@ private:
 	const float motor_id;
 	ControlMode mode;
 
-	float gear_ratio;
-	float gear_ratio_inv;
-
 	float power = 0.0f;
 	float target_rad = 0.0f;
 	float target_speed = 0.0f;
@@ -48,22 +45,20 @@ public:
 				.set_gain(0.000'1f, 0.000'05f, 0.0f)
 				.set_limit(0.0f)
 				.build()),
-	enc(feedbuck_freq),
+	enc(feedbuck_freq,_gear_ratio),
 	motor_id(_motor_id),
-	mode(ControlMode::OPEN_LOOP),
-	gear_ratio(_gear_ratio),
-	gear_ratio_inv(1/_gear_ratio){
+	mode(ControlMode::OPEN_LOOP){
 
 	}
 
 	void set_control_mode(ControlMode m);
 	ControlMode get_control_mode(void)const{ return mode; }
 
-	void set_target_speed_rad(float _target_speed){ target_speed = _target_speed*gear_ratio;}
-	float get_target_speed_rad(void) const {return target_speed*gear_ratio_inv;}
+	void set_target_speed_rad(float _target_speed){ target_speed = _target_speed;}
+	float get_target_speed_rad(void) const {return target_speed;}
 
-	void set_target_rad(float _target_rad){ target_rad = _target_rad*gear_ratio;}
-	float get_target_rad(void) const {return target_rad*gear_ratio_inv;}
+	void set_target_rad(float _target_rad){ target_rad = _target_rad;}
+	float get_target_rad(void) const {return target_rad;}
 
 	float pid_operation(const CommonLib::CanFrame &frame);
 

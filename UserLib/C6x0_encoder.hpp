@@ -19,8 +19,8 @@ namespace BoardLib{
 		float current = 0.0f;
 		float temperature = 0;
 	public:
-		C6x0Enc(float feedbuck_freq = 1000.0f)
-		:CommonLib::ContinuableEncoder(13,feedbuck_freq){
+		C6x0Enc(float feedbuck_freq = 1000.0f,float gear_ratio = 36.0f)
+		:CommonLib::ContinuableEncoder(13,feedbuck_freq,gear_ratio){
 		}
 
 		bool update_by_can_msg(CommonLib::CanFrame frame){
