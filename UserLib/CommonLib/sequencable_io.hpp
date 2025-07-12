@@ -14,7 +14,7 @@
 #include <memory>
 #include "gpio.hpp"
 
-namespace SabaneLib{
+namespace CommonLib{
 	struct Note{
 		float power;
 		uint32_t interval;
@@ -22,11 +22,11 @@ namespace SabaneLib{
 	inline constexpr Note end_of_io_sequence{0.0f,0};
 }
 
-inline bool operator==(const SabaneLib::Note& s1,const SabaneLib::Note& s2){
+inline bool operator==(const CommonLib::Note& s1,const CommonLib::Note& s2){
 	return (s1.power == s2.power) && (s1.interval == s2.interval);
 }
 
-namespace SabaneLib{
+namespace CommonLib{
 	template<typename T>
 	concept Sequencable = std::derived_from<T, IPWM> || std::is_same_v<T, GPIO>;
 

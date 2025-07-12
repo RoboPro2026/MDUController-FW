@@ -8,7 +8,7 @@
 
 #include "slcan.hpp"
 
-namespace SabaneLib::SLCAN{
+namespace CommonLib::SLCAN{
 	size_t can_to_slcan(const CanFrame &frame,char *str,const size_t str_max_size){
 		if(str_max_size < SLCAN_STR_MAX_SIZE){
 			return 0;

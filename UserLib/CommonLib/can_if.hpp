@@ -17,7 +17,7 @@
 
 #include <optional>
 
-namespace SabaneLib{
+namespace CommonLib{
 	struct CanFrame{
 		uint8_t data[8]={0};
 		size_t data_length=0;

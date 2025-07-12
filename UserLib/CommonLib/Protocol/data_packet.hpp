@@ -10,7 +10,7 @@
 
 #include "byte_reader_writer.hpp"
 
-namespace SabaneLib::Protocol{
+namespace CommonLib::Protocol{
 	enum class DataType : uint8_t{
 		COMMON_DATA,
 		PCU_DATA,

@@ -14,7 +14,7 @@
 
 #ifdef HAL_TIM_MODULE_ENABLED
 
-namespace SabaneLib{
+namespace CommonLib{
 
 class InterruptionTimerHard{
 private:

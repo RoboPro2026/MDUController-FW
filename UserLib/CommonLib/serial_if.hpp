@@ -12,7 +12,7 @@
 #include "ring_buffer.hpp"
 #include <memory>
 
-namespace SabaneLib{
+namespace CommonLib{
 
 struct SerialData{
 	static constexpr size_t max_size = 64;

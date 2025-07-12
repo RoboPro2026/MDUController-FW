@@ -15,7 +15,7 @@
 #include <iterator>
 #include <functional>
 
-namespace SabaneLib{
+namespace CommonLib{
 
 	class IEncoder{
 	public:

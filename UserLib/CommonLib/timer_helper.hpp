@@ -10,7 +10,7 @@
 
 #include "main.h"
 
-namespace SabaneLib{
+namespace CommonLib{
 
 #ifdef HAL_RCC_MODULE_ENABLED
 	inline uint32_t get_timer_clock_freq(TIM_HandleTypeDef* tim){

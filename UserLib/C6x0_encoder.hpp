@@ -12,7 +12,7 @@
 #include "CommonLib/encoder.hpp"
 
 namespace BoardLib{
-	class C6x0Enc:public SabaneLib::ContinuableEncoder{
+	class C6x0Enc:public CommonLib::ContinuableEncoder{
 	private:
 		static constexpr size_t enc_resolution = 13;
 
@@ -20,10 +20,10 @@ namespace BoardLib{
 		float temperature = 0;
 	public:
 		C6x0Enc(float feedbuck_freq = 1000.0f)
-		:SabaneLib::ContinuableEncoder(13,feedbuck_freq){
+		:CommonLib::ContinuableEncoder(13,feedbuck_freq){
 		}
 
-		bool update_by_can_msg(SabaneLib::CanFrame frame){
+		bool update_by_can_msg(CommonLib::CanFrame frame){
 			if(frame.is_ext_id || frame.is_remote || frame.data_length != 8 || !(0x200&frame.id)){
 				return false;
 			}

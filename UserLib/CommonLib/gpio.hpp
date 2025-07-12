@@ -10,8 +10,7 @@
 
 #include "main.h"
 
-//TODO:動作確認
-namespace SabaneLib{
+namespace CommonLib{
 
 class GPIO{
 private:

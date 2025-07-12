@@ -15,7 +15,7 @@
 #ifdef HAL_UART_MODULE_ENABLED
 
 namespace BoardLib{
-	class AMT21xEnc:public SabaneLib::ContinuableEncoder{
+	class AMT21xEnc:public CommonLib::ContinuableEncoder{
 	private:
 		static constexpr size_t enc_resolution = 12;
 		UART_HandleTypeDef* const uart;

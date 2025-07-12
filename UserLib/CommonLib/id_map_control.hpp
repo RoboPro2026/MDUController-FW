@@ -11,7 +11,7 @@
 #include "byte_reader_writer.hpp"
 #include <functional>
 
-namespace SabaneLib{
+namespace CommonLib{
 
 	class DataAccessor{
 	private:

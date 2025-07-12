@@ -11,7 +11,7 @@
 #include "main.h"
 
 
-namespace SabaneLib{
+namespace CommonLib{
 
 	class IPWM{
 	public:

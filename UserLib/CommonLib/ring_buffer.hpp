@@ -10,7 +10,7 @@
 
 #include <cstdbool>
 
-namespace SabaneLib{
+namespace CommonLib{
 
 	template<typename T>
 	class IRingBuffer{

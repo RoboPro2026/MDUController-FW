@@ -13,7 +13,7 @@
 #include <cmath>
 #include <cassert>
 
-namespace SabaneLib::Math{
+namespace CommonLib::Math{
 	enum class TableMode: size_t{
 		NORMAL = 1,
 		COMPACT = 4

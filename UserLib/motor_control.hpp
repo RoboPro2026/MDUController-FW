@@ -23,8 +23,8 @@ enum class ControlMode:uint8_t{
 
 class C6x0Controller{
 private:
-	SabaneLib::PIDController spd_pid;
-		SabaneLib::PIDController pos_pid;
+	CommonLib::PIDController spd_pid;
+		CommonLib::PIDController pos_pid;
 		BoardLib::C6x0Enc enc;
 
 	const float motor_id;
@@ -40,11 +40,11 @@ public:
 
 
 	C6x0Controller(float _motor_id,float feedbuck_freq = 1000.0f,float _gear_ratio = 36.0f)
-	:spd_pid(SabaneLib::PIDBuilder(feedbuck_freq)
+	:spd_pid(CommonLib::PIDBuilder(feedbuck_freq)
 				.set_gain(0.000'1f, 0.000'05f, 0.0f)
 				.set_limit(1.0f)
 				.build()),
-	pos_pid(SabaneLib::PIDBuilder(feedbuck_freq)
+	pos_pid(CommonLib::PIDBuilder(feedbuck_freq)
 				.set_gain(0.000'1f, 0.000'05f, 0.0f)
 				.set_limit(0.0f)
 				.build()),
@@ -65,7 +65,7 @@ public:
 	void set_target_rad(float _target_rad){ target_rad = _target_rad*gear_ratio;}
 	float get_target_rad(void) const {return target_rad*gear_ratio_inv;}
 
-	float pid_operation(const SabaneLib::CanFrame &frame);
+	float pid_operation(const CommonLib::CanFrame &frame);
 
 };
 }

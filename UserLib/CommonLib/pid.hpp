@@ -14,7 +14,7 @@
 #include <algorithm>
 #include <limits>
 
-namespace SabaneLib{
+namespace CommonLib{
 
 class PIController{
 protected:

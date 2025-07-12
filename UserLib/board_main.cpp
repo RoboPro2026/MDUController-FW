@@ -36,19 +36,19 @@ extern RNG_HandleTypeDef hrng;
 
 namespace BoardElement{
 	namespace TmpMemoryPool{
-		uint8_t can_main_tx_buff[sizeof(SabaneLib::RingBuffer<SabaneLib::CanFrame,5>)];
-		uint8_t can_main_rx_buff[sizeof(SabaneLib::RingBuffer<SabaneLib::CanFrame,5>)];
-		uint8_t can_md_tx_buff[sizeof(SabaneLib::RingBuffer<SabaneLib::CanFrame,5>)];
-		uint8_t can_md_rx_buff[sizeof(SabaneLib::RingBuffer<SabaneLib::CanFrame,5>)];
+		uint8_t can_main_tx_buff[sizeof(CommonLib::RingBuffer<CommonLib::CanFrame,5>)];
+		uint8_t can_main_rx_buff[sizeof(CommonLib::RingBuffer<CommonLib::CanFrame,5>)];
+		uint8_t can_md_tx_buff[sizeof(CommonLib::RingBuffer<CommonLib::CanFrame,5>)];
+		uint8_t can_md_rx_buff[sizeof(CommonLib::RingBuffer<CommonLib::CanFrame,5>)];
 
-		uint8_t led_r_pwm[sizeof(SabaneLib::PWMHard)];
-		uint8_t led_g_pwm[sizeof(SabaneLib::PWMHard)];
-		uint8_t led_b_pwm[sizeof(SabaneLib::PWMHard)];
+		uint8_t led_r_pwm[sizeof(CommonLib::PWMHard)];
+		uint8_t led_g_pwm[sizeof(CommonLib::PWMHard)];
+		uint8_t led_b_pwm[sizeof(CommonLib::PWMHard)];
 
-		uint8_t led0_gpio[sizeof(SabaneLib::GPIO)];
-		uint8_t led1_gpio[sizeof(SabaneLib::GPIO)];
-		uint8_t led2_gpio[sizeof(SabaneLib::GPIO)];
-		uint8_t led3_gpio[sizeof(SabaneLib::GPIO)];
+		uint8_t led0_gpio[sizeof(CommonLib::GPIO)];
+		uint8_t led1_gpio[sizeof(CommonLib::GPIO)];
+		uint8_t led2_gpio[sizeof(CommonLib::GPIO)];
+		uint8_t led3_gpio[sizeof(CommonLib::GPIO)];
 	}
 
 	auto encs = std::array<BoardLib::AMT21xEnc,4>{
@@ -58,42 +58,42 @@ namespace BoardElement{
 		BoardLib::AMT21xEnc(&huart2,0x54,1000.0f),
 	};
 
-	auto can_main = SabaneLib::FdCanComm{
+	auto can_main = CommonLib::FdCanComm{
 		&hfdcan2,
-		std::unique_ptr<SabaneLib::RingBuffer<SabaneLib::CanFrame,5>>(
-				new(TmpMemoryPool::can_main_tx_buff) SabaneLib::RingBuffer<SabaneLib::CanFrame,5>{}),
-		std::unique_ptr<SabaneLib::RingBuffer<SabaneLib::CanFrame,5>>(
-				new(TmpMemoryPool::can_main_rx_buff) SabaneLib::RingBuffer<SabaneLib::CanFrame,5>{}),
-		SabaneLib::FdCanRxFifo0
+		std::unique_ptr<CommonLib::RingBuffer<CommonLib::CanFrame,5>>(
+				new(TmpMemoryPool::can_main_tx_buff) CommonLib::RingBuffer<CommonLib::CanFrame,5>{}),
+		std::unique_ptr<CommonLib::RingBuffer<CommonLib::CanFrame,5>>(
+				new(TmpMemoryPool::can_main_rx_buff) CommonLib::RingBuffer<CommonLib::CanFrame,5>{}),
+		CommonLib::FdCanRxFifo0
 	};
 
-	auto can_md = SabaneLib::FdCanComm{
+	auto can_md = CommonLib::FdCanComm{
 		&hfdcan3,
-		std::unique_ptr<SabaneLib::RingBuffer<SabaneLib::CanFrame,5>>(
-				new(TmpMemoryPool::can_md_tx_buff) SabaneLib::RingBuffer<SabaneLib::CanFrame,5>{}),
-		std::unique_ptr<SabaneLib::RingBuffer<SabaneLib::CanFrame,5>>(
-				new(TmpMemoryPool::can_md_rx_buff) SabaneLib::RingBuffer<SabaneLib::CanFrame,5>{}),
-		SabaneLib::FdCanRxFifo0
+		std::unique_ptr<CommonLib::RingBuffer<CommonLib::CanFrame,5>>(
+				new(TmpMemoryPool::can_md_tx_buff) CommonLib::RingBuffer<CommonLib::CanFrame,5>{}),
+		std::unique_ptr<CommonLib::RingBuffer<CommonLib::CanFrame,5>>(
+				new(TmpMemoryPool::can_md_rx_buff) CommonLib::RingBuffer<CommonLib::CanFrame,5>{}),
+		CommonLib::FdCanRxFifo0
 	};
 
-	auto LED_r = SabaneLib::SequencableIO<SabaneLib::PWMHard>{
-			std::unique_ptr<SabaneLib::PWMHard> (new(TmpMemoryPool::led_r_pwm) SabaneLib::PWMHard{&htim1,TIM_CHANNEL_2})
+	auto LED_r = CommonLib::SequencableIO<CommonLib::PWMHard>{
+			std::unique_ptr<CommonLib::PWMHard> (new(TmpMemoryPool::led_r_pwm) CommonLib::PWMHard{&htim1,TIM_CHANNEL_2})
 	};
-	auto LED_g = SabaneLib::SequencableIO<SabaneLib::PWMHard>{
-			std::unique_ptr<SabaneLib::PWMHard> (new(TmpMemoryPool::led_g_pwm) SabaneLib::PWMHard{&htim1,TIM_CHANNEL_3})
+	auto LED_g = CommonLib::SequencableIO<CommonLib::PWMHard>{
+			std::unique_ptr<CommonLib::PWMHard> (new(TmpMemoryPool::led_g_pwm) CommonLib::PWMHard{&htim1,TIM_CHANNEL_3})
 	};
-	auto LED_b = SabaneLib::SequencableIO<SabaneLib::PWMHard>{
-			std::unique_ptr<SabaneLib::PWMHard> (new(TmpMemoryPool::led_b_pwm) SabaneLib::PWMHard{&htim1,TIM_CHANNEL_4})
-	};
-
-	auto md_state_led = std::array<SabaneLib::SequencableIO<SabaneLib::GPIO>,4>{
-		std::unique_ptr<SabaneLib::GPIO> (new(TmpMemoryPool::led0_gpio) SabaneLib::GPIO{LED0_GPIO_Port,LED1_Pin}),
-		std::unique_ptr<SabaneLib::GPIO> (new(TmpMemoryPool::led1_gpio) SabaneLib::GPIO{LED1_GPIO_Port,LED1_Pin}),
-		std::unique_ptr<SabaneLib::GPIO> (new(TmpMemoryPool::led2_gpio) SabaneLib::GPIO{LED2_GPIO_Port,LED2_Pin}),
-		std::unique_ptr<SabaneLib::GPIO> (new(TmpMemoryPool::led3_gpio) SabaneLib::GPIO{LED3_GPIO_Port,LED3_Pin})
+	auto LED_b = CommonLib::SequencableIO<CommonLib::PWMHard>{
+			std::unique_ptr<CommonLib::PWMHard> (new(TmpMemoryPool::led_b_pwm) CommonLib::PWMHard{&htim1,TIM_CHANNEL_4})
 	};
 
-	auto test_timer = SabaneLib::InterruptionTimerHard{&htim15};
+	auto md_state_led = std::array<CommonLib::SequencableIO<CommonLib::GPIO>,4>{
+		std::unique_ptr<CommonLib::GPIO> (new(TmpMemoryPool::led0_gpio) CommonLib::GPIO{LED0_GPIO_Port,LED1_Pin}),
+		std::unique_ptr<CommonLib::GPIO> (new(TmpMemoryPool::led1_gpio) CommonLib::GPIO{LED1_GPIO_Port,LED1_Pin}),
+		std::unique_ptr<CommonLib::GPIO> (new(TmpMemoryPool::led2_gpio) CommonLib::GPIO{LED2_GPIO_Port,LED2_Pin}),
+		std::unique_ptr<CommonLib::GPIO> (new(TmpMemoryPool::led3_gpio) CommonLib::GPIO{LED3_GPIO_Port,LED3_Pin})
+	};
+
+	auto test_timer = CommonLib::InterruptionTimerHard{&htim15};
 
 	auto motor = BoardLib::C6x0Controller{1};
 }
@@ -154,9 +154,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 }
 
-//auto filter = SabaneLib::Math::LowpassFilterBD<float>(1000.0f,10.0f);
-//auto filter = SabaneLib::Math::BiquadFilter<float>(1000.0f,10.0f,10.0f)
-auto filter = SabaneLib::Math::HighpassFilterBD<float>(1000.0f,10.0f);
+//auto filter = CommonLib::Math::LowpassFilterBD<float>(1000.0f,10.0f);
+//auto filter = CommonLib::Math::BiquadFilter<float>(1000.0f,10.0f,10.0f)
+auto filter = CommonLib::Math::HighpassFilterBD<float>(1000.0f,10.0f);
 
 //メイン関数
 extern "C"{
@@ -164,11 +164,11 @@ void cppmain(void){
 	HAL_Delay(500);
 //	printf("start\r\n");
 	HAL_Delay(100);
-	be::can_main.set_filter_free(0,SabaneLib::CanFilterMode::ONLY_EXT);
+	be::can_main.set_filter_free(0,CommonLib::CanFilterMode::ONLY_EXT);
 	be::can_main.start();
 //	printf("can init\r\n");
 //
-//	printf("tim15_f:%d\r\n",SabaneLib::get_timer_clock_freq(be::test_timer.get_handler()));
+//	printf("tim15_f:%d\r\n",CommonLib::get_timer_clock_freq(be::test_timer.get_handler()));
 	//uint32_t rand = 0;
 
 
@@ -183,7 +183,7 @@ void cppmain(void){
 
 
 //	//TODO:STD_AND_EXTが本当に使えないのか実験
-//	be::can_md.set_filter_free(0,SabaneLib::CanFilterMode::ONLY_STD);
+//	be::can_md.set_filter_free(0,CommonLib::CanFilterMode::ONLY_STD);
 //	be::can_md.start();
 //
 //	be::LED_r.io->start();
@@ -199,13 +199,13 @@ void cppmain(void){
 		HAL_Delay(100);
 
 //		//can test
-//		SabaneLib::Protocol::DataPacket dp;
-//		SabaneLib::CanFrame cf;
-//		SabaneLib::SerialData sd;
+//		CommonLib::Protocol::DataPacket dp;
+//		CommonLib::CanFrame cf;
+//		CommonLib::SerialData sd;
 //
 //		dp.board_ID = 2;
 //		dp.priority = 1;
-//		dp.data_type = SabaneLib::Protocol::DataType::RMC_DATA;
+//		dp.data_type = CommonLib::Protocol::DataType::RMC_DATA;
 //		dp.writer().write<int32_t>(0x0123'4567);
 //		cf.decode_common_data_packet(dp);
 //
@@ -220,7 +220,7 @@ void cppmain(void){
 //			be::can_main.rx(cf);
 //			printf("rx can!\r\n");
 //		}
-//		sd.size = SabaneLib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
+//		sd.size = CommonLib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
 //
 //		printf("hello:%s\r\n",sd.data);
 

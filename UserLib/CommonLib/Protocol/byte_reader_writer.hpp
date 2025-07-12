@@ -12,7 +12,7 @@
 #include <cstring>
 #include <cstdint>
 
-namespace SabaneLib::Protocol{
+namespace CommonLib::Protocol{
 
 	class ByteWriter{
 	  uint8_t *const begin;

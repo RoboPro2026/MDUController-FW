@@ -12,7 +12,7 @@
 #include <type_traits>
 #include <cmath>
 
-namespace SabaneLib::Math{
+namespace CommonLib::Math{
 
 	template <class T>
 	concept Arithmetic = std::is_arithmetic_v<T>;

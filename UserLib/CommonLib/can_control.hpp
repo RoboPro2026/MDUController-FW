@@ -12,7 +12,7 @@
 
 #include <memory>
 
-namespace SabaneLib{
+namespace CommonLib{
 #ifdef HAL_CAN_MODULE_ENABLED
 	class CanComm:public ICan{
 	private:

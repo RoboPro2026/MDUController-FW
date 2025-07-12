@@ -10,7 +10,7 @@
 
 #include "arm_math.h"
 
-namespace SabaneLib::Math{
+namespace CommonLib::Math{
 
 	template<typename T>
 	concept QFromat = std::is_same_v<T, q15_t> || std::is_same_v<T, q31_t>;

@@ -36,7 +36,7 @@ void C6x0Controller::set_control_mode(ControlMode _mode){
 	mode = _mode;
 }
 
-float C6x0Controller::pid_operation(const SabaneLib::CanFrame &frame){
+float C6x0Controller::pid_operation(const CommonLib::CanFrame &frame){
 	enc.update_by_can_msg(frame);
 
 	switch(mode){

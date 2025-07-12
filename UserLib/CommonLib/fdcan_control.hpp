@@ -16,7 +16,7 @@
 
 #ifdef HAL_FDCAN_MODULE_ENABLED
 
-namespace SabaneLib{
+namespace CommonLib{
 
 	struct FdCanRxFifoParams{
 		uint32_t no;

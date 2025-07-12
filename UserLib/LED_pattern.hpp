@@ -13,20 +13,20 @@
 
 namespace BoardLib::LEDPattern{
 
-	inline constexpr SabaneLib::Note ok[] = {
+	inline constexpr CommonLib::Note ok[] = {
 		{1.0f,10},
 		{0.0f,10},
-		SabaneLib::end_of_io_sequence
+		CommonLib::end_of_io_sequence
 	};
-	inline constexpr SabaneLib::Note setting[]={
+	inline constexpr CommonLib::Note setting[]={
 		{1.0f,100},
 		{0.0f,100},
 		{1.0f,700},
 		{0.0f,100},
-		SabaneLib::end_of_io_sequence
+		CommonLib::end_of_io_sequence
 	};
 
-	inline constexpr SabaneLib::Note test[]={
+	inline constexpr CommonLib::Note test[]={
 		{1.0f,100},
 		{0.0f,100},
 		{1.0f,100},
@@ -47,7 +47,7 @@ namespace BoardLib::LEDPattern{
 		{0.0f,100},
 		{1.0f,100},
 		{0.0f,1000},
-		SabaneLib::end_of_io_sequence
+		CommonLib::end_of_io_sequence
 	};
 }
 

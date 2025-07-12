@@ -15,7 +15,7 @@
 
 #ifdef HAL_CORDIC_MODULE_ENABLED
 
-namespace SabaneLib{
+namespace CommonLib{
 
 enum class CordicMode:uint32_t{
 	COS_SIN,
