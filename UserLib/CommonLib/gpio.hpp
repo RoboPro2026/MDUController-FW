@@ -33,7 +33,7 @@ public:
 		MODIFY_REG(port->MODER, (GPIO_MODER_MODE0 << (POSITION_VAL(pin) * 2U)), (static_cast<int>(m) << (POSITION_VAL(pin) * 2U)));
 	}
 
-	bool operator() (void){
+	bool operator() (void)const{
 		return (port->IDR & pin) != 0;
 	}
 

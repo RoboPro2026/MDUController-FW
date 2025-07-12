@@ -16,15 +16,7 @@
 
 namespace SabaneLib{
 
-class IInterruptionTimer{
-public:
-	void virtual set_and_start(float period_s) = 0; //period==0:stop, period!=0 set period and start
-	uint16_t virtual get_state(void)const = 0;       //period==0:stop, period!=0 running
-	void virtual set_task(std::function<void(void)> f) = 0;
-	void virtual reset_count(void) = 0;
-};
-
-class InterruptionTimerHard:public IInterruptionTimer{
+class InterruptionTimerHard{
 private:
 	TIM_HandleTypeDef *tim;
 	bool first_interrupt_flag = false;
@@ -33,7 +25,7 @@ private:
 public:
 	InterruptionTimerHard(TIM_HandleTypeDef *_tim):tim(_tim){}
 
-	void set_and_start(float period_s)override{ //秒単位で指定
+	void set_and_start(float period_s){ //秒単位で指定
 		uint32_t freq = get_timer_clock_freq(tim);
 		uint32_t period = (period_s * static_cast<float>(freq));
 		if(period == 0){
@@ -48,7 +40,7 @@ public:
 			}
 		}
 	}
-	uint16_t get_state(void)const override{
+	uint16_t get_state(void)const{
 		if(HAL_TIM_Base_GetState(tim) == HAL_TIM_STATE_BUSY){
 			return __HAL_TIM_GET_AUTORELOAD(tim)+1;
 		}else{
@@ -56,7 +48,7 @@ public:
 		}
 	}
 
-	void set_task(std::function<void(void)> f)override{
+	void set_task(std::function<void(void)> f){
 		task = f;
 	}
 

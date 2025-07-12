@@ -17,18 +17,106 @@ namespace SabaneLib::Math{
 	template <class T>
 	concept Arithmetic = std::is_arithmetic_v<T>;
 
-	//指数移動平均による実装
 	template<Arithmetic T>
-	class LowpassFilter{
+	class IFilter{
+		virtual T operator() (T input) = 0;
+		virtual ~IFilter(){}
+	};
+
+
+	//後退差分による一次LPF
+	template<Arithmetic T>
+	class LowpassFilterBD:public IFilter<T>{
 	private:
 		T data = static_cast<T>(0);
+		float k = 0.0f;
+	public:
+		LowpassFilterBD(float _k):k(_k){}
+		LowpassFilterBD(float sampling_freq, float cutoff_freq):k(2*M_PI*cutoff_freq/(sampling_freq + 2*M_PI*cutoff_freq)){}
+
+		T operator() (T input)override{
+			data = input*k + (1.0f-k)*data;
+			return data;
+		}
+		T get(void)const{
+			return data;
+		}
+		void set_param(float sampling_freq, float cutoff_freq){
+			k = 2*M_PI*cutoff_freq/(sampling_freq + 2*M_PI*cutoff_freq);
+		}
+		void reset(void){
+			data = static_cast<T>(0);
+		}
+	};
+
+	//双一次変換による二次ローパスフィルタ
+	template<Arithmetic T>
+	class BiquadFilter:public IFilter<T>{
+	private:
+		T output;
+		T x1;
+		T x2;
+		T y1;
+		T y2;
+		float b0;
+		float b1;
+		float b2;
+		float a0;
+		float a1;
+	public:
+		BiquadFilter(float sampling_freq, float cutoff_freq,float q_factor){
+			reset();
+		    set_param(sampling_freq,cutoff_freq,q_factor);
+		}
+
+		T operator() (T input)override{
+		    float output = b0 * input + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+
+		    x2 = x1;
+		    x1 = input;
+		    y2 = y1;
+		    y1 = output;
+
+		    return output;
+		}
+		T get(void)const{
+			return data;
+		}
+		void set_param(float sampling_freq, float cutoff_freq,float q_factor){
+			float omega = 2.0 * M_PI * cutoff_freq / sample_rate;
+			float alpha = sin(omega) / (2.0 * q_factor);
+			float cos_omega = cos(omega);
+			float a0_inv = 1.0 / (1.0 + alpha);
+
+			b0 = (1.0 - cos_omega) / 2.0 * a0_inv;
+			b1 = (1.0 - cos_omega) * a0_inv;
+			b2 = (1.0 - cos_omega) / 2.0 * a0_inv;
+			a1 = -2.0 * cos_omega * a0_inv;
+			a2 = (1.0 - alpha) * a0_inv;
+		}
+		void reset(void){
+			output = static_cast<T>(0);
+			x1 = static_cast<T>(0);
+			x2 = static_cast<T>(0);
+			y1 = static_cast<T>(0);
+			y2 = static_cast<T>(0);
+		}
+	};
+
+	//後退差分による一次HPF
+	template<Arithmetic T>
+	class HighpassFilterBD:public IFilter<T>{
+	private:
+		T data = static_cast<T>(0);
+		T prev_input = static_cast<T>(0);
 		const float k = 0.0f;
 	public:
-		LowpassFilter(float _k):k(_k){}
-		LowpassFilter(float f_sample, float f_cutoff):k(2*M_PI*f_cutoff/(f_sample + 2*M_PI*f_cutoff)){}
+		HighpassFilterBD(float _k):k(_k){}
+		HighpassFilterBD(float f_sample, float f_cutoff):k(2*M_PI*f_cutoff/(f_sample + 2*M_PI*f_cutoff)){}
 
-		T operator() (T input){
-			data = input*k + (1.0f-k)*data;
+		T operator() (T input)override{
+			data = k*(input - prev_input + data);
+			prev_input = input;
 			return data;
 		}
 		T get(void)const{
@@ -36,60 +124,6 @@ namespace SabaneLib::Math{
 		}
 		void reset(void){
 			data = static_cast<T>(0);
-		}
-	};
-
-	//指数移動平均による実装
-	template<Arithmetic T>
-	class HighpassFilter{
-	private:
-		T data = static_cast<T>(0);
-		const float k = 0.0f;
-	public:
-		HighpassFilter(float _k):k(_k){}
-		HighpassFilter(float f_sample, float f_cutoff):k(2*M_PI*f_cutoff/(f_sample + 2*M_PI*f_cutoff)){}
-
-		T operator() (T input){
-			data = input*k + (1.0f-k)*data;
-			return input - data;
-		}
-		T get(void)const{
-			return data;
-		}
-		void reset(void){
-			data = static_cast<T>(0);
-		}
-	};
-
-
-	//単純移動平均
-	template<Arithmetic T,size_t n>
-	class MovingAverage{
-	private:
-		static constexpr size_t buff_size = 1<<n;
-		static constexpr size_t mask = buff_size - 1;
-
-		T buff[buff_size] = {0};
-		T sum = static_cast<T>(0);
-		size_t head = 0;
-
-	public:
-		void push(T val){
-			sum -= buff[head];
-			buff[head] = val;
-			sum += val;
-			head = (head + 1) & mask;
-		}
-
-		T get_average(void)const{
-			return sum / static_cast<T>(buff_size);
-		}
-
-		void reset(void){
-			sum = static_cast<T>(0);
-			for(auto &b : buff){
-				b = static_cast<T>(0);
-			}
 		}
 	};
 }

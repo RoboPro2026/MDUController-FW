@@ -27,6 +27,8 @@ public:
 
 	virtual bool rx(SerialData &data) = 0;
 	virtual size_t rx_available(void) const = 0;
+
+	virtual ~ISerial(){}
 };
 
 #ifdef USE_USB_CDC

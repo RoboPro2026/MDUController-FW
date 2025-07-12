@@ -83,15 +83,15 @@ protected:
 	float kd;
 	float prev_error = 0.0f;
 
-	Math::LowpassFilter<float> lpf;
+	Math::LowpassFilterBD<float> lpf;
 public:
 	PIDController(float _pid_freq,float _kp,float _ki,float _kd, float _k_anti_windup,
 			float _limit_min = std::numeric_limits<float>().lowest(),
 			float _limit_max = std::numeric_limits<float>().max(),
-			float lpf_gain = 0.15f):
+			float lpf_cutoff = 0.1f*_kd):
 		PIController(_pid_freq,_kp,_ki,_k_anti_windup,_limit_min,_limit_max),
 		kd(_kd*pid_freq),
-		lpf(lpf_gain){
+		lpf(pid_freq,lpf_cutoff){
 	}
 
 	float operator()(float target,float feedback) override{
