@@ -23,10 +23,6 @@ enum class ControlMode:uint8_t{
 
 class C6x0Controller{
 private:
-	CommonLib::PIDController spd_pid;
-		CommonLib::PIDController pos_pid;
-		BoardLib::C6x0Enc enc;
-
 	const float motor_id;
 	ControlMode mode;
 
@@ -34,10 +30,14 @@ private:
 	float target_rad = 0.0f;
 	float target_speed = 0.0f;
 public:
-
+	CommonLib::PIDController spd_pid;
+	CommonLib::PIDController pos_pid;
+	BoardLib::C6x0Enc enc;
 
 	C6x0Controller(float _motor_id,float feedbuck_freq = 1000.0f,float _gear_ratio = 36.0f)
-	:spd_pid(CommonLib::PIDBuilder(feedbuck_freq)
+	:motor_id(_motor_id),
+	mode(ControlMode::OPEN_LOOP),
+	spd_pid(CommonLib::PIDBuilder(feedbuck_freq)
 				.set_gain(0.000'1f, 0.000'05f, 0.0f)
 				.set_limit(1.0f)
 				.build()),
@@ -45,9 +45,7 @@ public:
 				.set_gain(0.000'1f, 0.000'05f, 0.0f)
 				.set_limit(0.0f)
 				.build()),
-	enc(feedbuck_freq,_gear_ratio),
-	motor_id(_motor_id),
-	mode(ControlMode::OPEN_LOOP){
+	enc(feedbuck_freq,_gear_ratio){
 
 	}
 
