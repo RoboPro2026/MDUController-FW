@@ -94,7 +94,7 @@ public:
 		PIController(_pid_freq,_kp,_ki,_k_anti_windup,_limit_min,_limit_max),
 		kd(_kd*pid_freq),
 		lpf_eta(_lpf_eta),
-		lpf(pid_freq,_lpf_eta*_kd){
+		lpf(pid_freq,1/(2*M_PI*_lpf_eta*_kd)){
 	}
 
 	float operator()(float target,float feedback) override{
