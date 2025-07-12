@@ -57,13 +57,11 @@ public:
 		error_sum = 0;
 	}
 
-	void set_p_gain(float _kp){
-		kp = _kp;
-	}
+	void set_p_gain(float _kp){	kp = _kp; }
+	float get_p_gain(void)const{return kp;}
 
-	void set_i_gain(float _ki){
-		ki = _ki/pid_freq;
-	}
+	void set_i_gain(float _ki){ ki = _ki/pid_freq; }
+	float get_i_gain(void)const{ return ki*pid_freq; }
 
 	void set_limit(float _limit_max){
 		limit_min = -_limit_max;
@@ -83,15 +81,17 @@ protected:
 	float kd;
 	float prev_error = 0.0f;
 
+	const float lpf_eta;
 	Math::LowpassFilterBD<float> lpf;
 public:
 	PIDController(float _pid_freq,float _kp,float _ki,float _kd, float _k_anti_windup,
 			float _limit_min = std::numeric_limits<float>().lowest(),
 			float _limit_max = std::numeric_limits<float>().max(),
-			float lpf_eta = 0.1f):
+			float _lpf_eta = 0.1f):
 		PIController(_pid_freq,_kp,_ki,_k_anti_windup,_limit_min,_limit_max),
 		kd(_kd*pid_freq),
-		lpf(pid_freq,lpf_eta*_kd){
+		lpf_eta(_lpf_eta),
+		lpf(pid_freq,_lpf_eta*_kd){
 	}
 
 	float operator()(float target,float feedback) override{
@@ -113,7 +113,9 @@ public:
 
 	void set_d_gain(float _kd){
 		kd = _kd*pid_freq;
+		lpf.set_param(pid_freq,lpf_eta*_kd);
 	}
+	float get_d_gain(void)const { return kd/pid_freq; }
 
 	void reset(void)override{
 		error_sum = 0;

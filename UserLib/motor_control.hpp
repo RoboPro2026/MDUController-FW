@@ -46,7 +46,6 @@ public:
 				.set_limit(0.0f)
 				.build()),
 	enc(feedbuck_freq,_gear_ratio){
-
 	}
 
 	void set_control_mode(ControlMode m);
