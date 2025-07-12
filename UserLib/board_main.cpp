@@ -6,6 +6,7 @@
  */
 #include "main.h"
 
+#include "CommonLib/math/filter.hpp"
 #include "CommonLib/fdcan_control.hpp"
 #include "CommonLib/gpio.hpp"
 #include "CommonLib/sequencable_io.hpp"
@@ -17,6 +18,7 @@
 
 #include <array>
 #include <stdio.h>
+#include <bit>
 
 extern FDCAN_HandleTypeDef hfdcan2;
 extern FDCAN_HandleTypeDef hfdcan3;
@@ -28,6 +30,8 @@ extern UART_HandleTypeDef huart3;
 
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim15;
+
+extern RNG_HandleTypeDef hrng;
 
 namespace BoardElement{
 	namespace TmpMemoryPool{
@@ -147,20 +151,30 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 }
 
+//auto filter = SabaneLib::Math::LowpassFilterBD<float>(1000.0f,10.0f);
+//auto filter = SabaneLib::Math::BiquadFilter<float>(1000.0f,10.0f,10.0f)
+auto filter = SabaneLib::Math::HighpassFilterBD<float>(1000.0f,10.0f);
+
 //メイン関数
 extern "C"{
 void cppmain(void){
 	HAL_Delay(500);
-	printf("start\r\n");
+//	printf("start\r\n");
 	HAL_Delay(100);
 	be::can_main.set_filter_free(0,SabaneLib::CanFilterMode::ONLY_EXT);
 	be::can_main.start();
-	printf("can init\r\n");
+//	printf("can init\r\n");
+//
+//	printf("tim15_f:%d\r\n",SabaneLib::get_timer_clock_freq(be::test_timer.get_handler()));
+	//uint32_t rand = 0;
 
-	printf("tim15_f:%d\r\n",SabaneLib::get_timer_clock_freq(be::test_timer.get_handler()));
 
 	be::test_timer.set_task([](){
 		be::md_state_led[2].update();
+		int32_t rand;
+		HAL_RNG_GenerateRandomNumber(&hrng,(uint32_t*)(&rand));
+		float frand = rand*(1/static_cast<float>(std::numeric_limits<int32_t>().max()));
+		printf("%3.4f\r\n",filter(frand));
 	});
 	be::test_timer.set_and_start(0.001f);
 
@@ -176,32 +190,37 @@ void cppmain(void){
 	while(1){
 		be::md_state_led[2].play(BoardLib::LEDPattern::test,false);
 
-		HAL_Delay(100);
-
-		SabaneLib::Protocol::DataPacket dp;
-		SabaneLib::CanFrame cf;
-		SabaneLib::SerialData sd;
-
-		dp.board_ID = 2;
-		dp.priority = 1;
-		dp.data_type = SabaneLib::Protocol::DataType::RMC_DATA;
-		dp.writer().write<int32_t>(0x0123'4567);
-		cf.decode_common_data_packet(dp);
-
-		printf("can buff:%d\r\n",be::can_main.tx_available());
-
-		cf.is_ext_id = true;
-		be::can_main.tx(cf);
-		printf("can tx\r\n");
+//		HAL_RNG_GenerateRandomNumber(&hrng,&rand);
+//		printf("%d\r\n",rand);
 
 		HAL_Delay(100);
-		if(be::can_main.rx_available()){
-			be::can_main.rx(cf);
-			printf("rx can!\r\n");
-		}
-		sd.size = SabaneLib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
 
-		printf("hello:%s\r\n",sd.data);
+//		//can test
+//		SabaneLib::Protocol::DataPacket dp;
+//		SabaneLib::CanFrame cf;
+//		SabaneLib::SerialData sd;
+//
+//		dp.board_ID = 2;
+//		dp.priority = 1;
+//		dp.data_type = SabaneLib::Protocol::DataType::RMC_DATA;
+//		dp.writer().write<int32_t>(0x0123'4567);
+//		cf.decode_common_data_packet(dp);
+//
+//		printf("can buff:%d\r\n",be::can_main.tx_available());
+//
+//		cf.is_ext_id = true;
+//		be::can_main.tx(cf);
+//		printf("can tx\r\n");
+//
+//		HAL_Delay(100);
+//		if(be::can_main.rx_available()){
+//			be::can_main.rx(cf);
+//			printf("rx can!\r\n");
+//		}
+//		sd.size = SabaneLib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
+//
+//		printf("hello:%s\r\n",sd.data);
+
 //		for(auto &e: BoardElement::encs){
 //			e.request_position();
 //		}
@@ -210,7 +229,7 @@ void cppmain(void){
 }
 
 int _write(int file, char *ptr, int len) {
-	HAL_UART_Transmit(&huart2, (uint8_t*) ptr, len,100);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*) ptr, len);
 	return len;
 }
 

@@ -19,6 +19,7 @@ namespace SabaneLib::Math{
 
 	template<Arithmetic T>
 	class IFilter{
+	public:
 		virtual T operator() (T input) = 0;
 		virtual ~IFilter(){}
 	};
@@ -63,6 +64,7 @@ namespace SabaneLib::Math{
 		float b2;
 		float a0;
 		float a1;
+		float a2;
 	public:
 		BiquadFilter(float sampling_freq, float cutoff_freq,float q_factor){
 			reset();
@@ -80,10 +82,10 @@ namespace SabaneLib::Math{
 		    return output;
 		}
 		T get(void)const{
-			return data;
+			return output;
 		}
 		void set_param(float sampling_freq, float cutoff_freq,float q_factor){
-			float omega = 2.0 * M_PI * cutoff_freq / sample_rate;
+			float omega = 2.0 * M_PI * cutoff_freq / sampling_freq;
 			float alpha = sin(omega) / (2.0 * q_factor);
 			float cos_omega = cos(omega);
 			float a0_inv = 1.0 / (1.0 + alpha);
