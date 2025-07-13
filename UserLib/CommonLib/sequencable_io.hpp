@@ -9,10 +9,11 @@
 #define SEQUENCABLE_IO_HPP_
 
 #include "pwm.hpp"
+#include "gpio.hpp"
+
 #include "main.h"
 
-#include <memory>
-#include "gpio.hpp"
+#include <concepts>
 
 namespace CommonLib{
 	struct Note{
@@ -39,21 +40,22 @@ namespace CommonLib{
 
 		inline void set_duty(float v){
 			if constexpr(std::derived_from<T, IPWM>){
-				(*io)(0.0f);
+				io(0.0f);
 			}else{
 				if(v > 0.0f){
-					(*io)(true);
+					io(true);
 				}else{
-					(*io)(false);
+					io(false);
 				}
 			}
 		}
 
 	public:
-		std::unique_ptr<T> io;
+		//TODO:templateを使わなくて良い方法を考える
+		T io;
 
-		SequencableIO(std::unique_ptr<T> _io):
-			io(std::move(_io)){
+		SequencableIO(T _io):
+			io(_io){
 		}
 
 		bool play(const Note *pattern,bool force = true){
@@ -66,7 +68,7 @@ namespace CommonLib{
 
 			interval_count = playing_pattern[pattern_count].interval;
 
-			(*io)(playing_pattern[pattern_count].power);
+			set_duty(playing_pattern[pattern_count].power);
 			return true;
 		}
 

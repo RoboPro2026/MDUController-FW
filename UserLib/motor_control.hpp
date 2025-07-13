@@ -58,6 +58,7 @@ public:
 	float get_target_rad(void) const {return target_rad;}
 
 	float pid_operation(const CommonLib::CanFrame &frame);
+	float get_power(void) const {return power;}
 
 };
 }

@@ -76,21 +76,15 @@ namespace BoardElement{
 		CommonLib::FdCanRxFifo1
 	};
 
-	auto LED_r = CommonLib::SequencableIO<CommonLib::PWMHard>{
-			std::unique_ptr<CommonLib::PWMHard> (new(TmpMemoryPool::led_r_pwm) CommonLib::PWMHard{&htim1,TIM_CHANNEL_2})
-	};
-	auto LED_g = CommonLib::SequencableIO<CommonLib::PWMHard>{
-			std::unique_ptr<CommonLib::PWMHard> (new(TmpMemoryPool::led_g_pwm) CommonLib::PWMHard{&htim1,TIM_CHANNEL_3})
-	};
-	auto LED_b = CommonLib::SequencableIO<CommonLib::PWMHard>{
-			std::unique_ptr<CommonLib::PWMHard> (new(TmpMemoryPool::led_b_pwm) CommonLib::PWMHard{&htim1,TIM_CHANNEL_4})
-	};
+	auto LED_r = CommonLib::SequencableIO<CommonLib::PWMHard>{CommonLib::PWMHard{&htim1,TIM_CHANNEL_2}};
+	auto LED_g = CommonLib::SequencableIO<CommonLib::PWMHard>{CommonLib::PWMHard{&htim1,TIM_CHANNEL_3}};
+	auto LED_b = CommonLib::SequencableIO<CommonLib::PWMHard>{CommonLib::PWMHard{&htim1,TIM_CHANNEL_4}};
 
 	auto md_state_led = std::array<CommonLib::SequencableIO<CommonLib::GPIO>,4>{
-		std::unique_ptr<CommonLib::GPIO> (new(TmpMemoryPool::led0_gpio) CommonLib::GPIO{LED0_GPIO_Port,LED1_Pin}),
-		std::unique_ptr<CommonLib::GPIO> (new(TmpMemoryPool::led1_gpio) CommonLib::GPIO{LED1_GPIO_Port,LED1_Pin}),
-		std::unique_ptr<CommonLib::GPIO> (new(TmpMemoryPool::led2_gpio) CommonLib::GPIO{LED2_GPIO_Port,LED2_Pin}),
-		std::unique_ptr<CommonLib::GPIO> (new(TmpMemoryPool::led3_gpio) CommonLib::GPIO{LED3_GPIO_Port,LED3_Pin})
+		CommonLib::GPIO{LED0_GPIO_Port,LED0_Pin},
+		CommonLib::GPIO{LED1_GPIO_Port,LED1_Pin},
+		CommonLib::GPIO{LED2_GPIO_Port,LED2_Pin},
+		CommonLib::GPIO{LED3_GPIO_Port,LED3_Pin}
 	};
 
 	auto test_timer = CommonLib::InterruptionTimerHard{&htim15};

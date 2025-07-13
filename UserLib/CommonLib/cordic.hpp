@@ -10,10 +10,10 @@
 
 #include "main.h"
 
+#ifdef HAL_CORDIC_MODULE_ENABLED
+
 #include <cassert>
 #include <utility>
-
-#ifdef HAL_CORDIC_MODULE_ENABLED
 
 namespace CommonLib{
 

@@ -8,12 +8,14 @@
 #ifndef CAN_CONTROL_HPP_
 #define CAN_CONTROL_HPP_
 
+#ifdef HAL_CAN_MODULE_ENABLED
+
 #include "can_if.hpp"
 
 #include <memory>
 
 namespace CommonLib{
-#ifdef HAL_CAN_MODULE_ENABLED
+
 	class CanComm:public ICan{
 	private:
 		CAN_HandleTypeDef* const can;
@@ -206,8 +208,8 @@ namespace CommonLib{
 			HAL_CAN_ConfigFilter(can, &filter);
 		}
 	};
-
-#endif
 }
+
+#endif //HAL_CAN_MODULE_ENABLED
 
 #endif /* CAN_CONTROL_HPP_ */

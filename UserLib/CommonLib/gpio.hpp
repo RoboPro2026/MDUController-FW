@@ -32,10 +32,12 @@ public:
 		MODIFY_REG(port->MODER, (GPIO_MODER_MODE0 << (POSITION_VAL(pin) * 2U)), (static_cast<int>(m) << (POSITION_VAL(pin) * 2U)));
 	}
 
+	//読み出し
 	bool operator() (void)const{
 		return (port->IDR & pin) != 0;
 	}
 
+	//書き込み
 	void operator() (bool state){
 		//state==0なら16bitシフトしてRSRR.BRに書き込み->リセット
 		//state==1ならシフトせずBSRR.BSに書き込み->セット

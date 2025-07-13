@@ -10,9 +10,8 @@
 
 #include "main.h"
 
-namespace CommonLib{
-
 #ifdef HAL_RCC_MODULE_ENABLED
+namespace CommonLib{
 	inline uint32_t get_timer_clock_freq(TIM_HandleTypeDef* tim){
 		uint32_t tim_clock = 0;
 
@@ -113,9 +112,8 @@ namespace CommonLib{
 
 		return tim_clock/tim->Instance->PSC;//何故かHALにPSCを読む関数がない
 	}
-#endif //HAL_RCC_MODULE_ENABLED
-
 }
+#endif //HAL_RCC_MODULE_ENABLED
 
 
 #endif /* COMMONLIB_TIMER_HELPER_HPP_ */

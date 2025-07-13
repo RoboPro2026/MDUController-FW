@@ -8,13 +8,14 @@
 #ifndef FDCAN_CONTROL_HPP_
 #define FDCAN_CONTROL_HPP_
 
-#include "can_if.hpp"
 #include "main.h"
+
+#ifdef HAL_FDCAN_MODULE_ENABLED
+
+#include "can_if.hpp"
 
 #include <memory>
 #include <cassert>
-
-#ifdef HAL_FDCAN_MODULE_ENABLED
 
 namespace CommonLib{
 

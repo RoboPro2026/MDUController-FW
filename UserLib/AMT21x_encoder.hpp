@@ -8,11 +8,11 @@
 #ifndef AMT21X_ENCODER_HPP_
 #define AMT21X_ENCODER_HPP_
 
-#include "CommonLib/encoder.hpp"
-
 #include "main.h"
 
 #ifdef HAL_UART_MODULE_ENABLED
+
+#include "CommonLib/encoder.hpp"
 
 namespace BoardLib{
 	class AMT21xEnc:public CommonLib::ContinuableEncoder{
