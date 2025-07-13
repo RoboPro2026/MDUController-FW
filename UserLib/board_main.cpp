@@ -122,7 +122,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 	}else if(hfdcan == be::can_md.get_handler()){
 		be::can_md.rx_interrupt_task();
 	}
-	be::md_state_led[2].play(BoardLib::LEDPattern::ok,false);
+	//be::md_state_led[2].play(BoardLib::LEDPattern::ok,false);
 }
 void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs){
 	if(hfdcan == be::can_main.get_handler()){
@@ -164,7 +164,7 @@ void cppmain(void){
 	be::can_main.start();
 	printf("can init\r\n");
 
-	printf("tim15_f:%d\r\n",CommonLib::get_timer_clock_freq(be::test_timer.get_handler()));
+	printf("tim15_f:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(be::test_timer.get_handler()));
 
 	be::test_timer.set_task([](){
 		be::md_state_led[2].update();
@@ -173,7 +173,8 @@ void cppmain(void){
 //		float frand = rand*(1/static_cast<float>(std::numeric_limits<int32_t>().max()));
 //		printf("%3.4f\r\n",filter(frand));
 	});
-	be::test_timer.set_and_start(0.001f);
+	be::test_timer.start_timer(0.002f);
+	printf("tim15_period:%f\r\n",be::test_timer.get_timer_period());
 
 //
 //	be::LED_r.io->start();
@@ -181,7 +182,7 @@ void cppmain(void){
 //	be::LED_b.io->start();
 
 	while(1){
-		//be::md_state_led[2].play(BoardLib::LEDPattern::test,false);
+		be::md_state_led[2].play(BoardLib::LEDPattern::test,false);
 
 		HAL_Delay(100);
 

@@ -45,11 +45,7 @@ public:
 	}
 
 	void toggle(void){
-		if((*this)()){
-			(*this)(false);
-		}else{
-			(*this)(true);
-		}
+		(*this)(!(*this)());
 	}
 };
 

@@ -11,7 +11,7 @@
 #include "main.h"
 
 #ifdef HAL_RCC_MODULE_ENABLED
-namespace CommonLib{
+namespace CommonLib::TimerHelper{
 	inline uint32_t get_timer_clock_freq(TIM_HandleTypeDef* tim){
 		uint32_t tim_clock = 0;
 
