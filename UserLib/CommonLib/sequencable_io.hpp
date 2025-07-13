@@ -54,8 +54,8 @@ namespace CommonLib{
 		//TODO:templateを使わなくて良い方法を考える
 		T io;
 
-		SequencableIO(T _io):
-			io(_io){
+		SequencableIO(T&& _io):
+			io(std::move(_io)){
 		}
 
 		bool play(const Note *pattern,bool force = true){

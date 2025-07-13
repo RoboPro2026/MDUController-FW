@@ -48,6 +48,26 @@ namespace CommonLib{
 
 		const FdCanRxFifoParams &rx_fifo;
 
+		static constexpr uint32_t dlc_macros[] = {
+				FDCAN_DLC_BYTES_0,
+				FDCAN_DLC_BYTES_1,
+				FDCAN_DLC_BYTES_2,
+				FDCAN_DLC_BYTES_3,
+				FDCAN_DLC_BYTES_4,
+				FDCAN_DLC_BYTES_5,
+				FDCAN_DLC_BYTES_6,
+				FDCAN_DLC_BYTES_7,
+				FDCAN_DLC_BYTES_8,
+				FDCAN_DLC_BYTES_12,
+				FDCAN_DLC_BYTES_16,
+				FDCAN_DLC_BYTES_20,
+				FDCAN_DLC_BYTES_24,
+				FDCAN_DLC_BYTES_32,
+				FDCAN_DLC_BYTES_48,
+				FDCAN_DLC_BYTES_64,
+		};
+
+
 	public:
 		FdCanComm(FDCAN_HandleTypeDef *_fdcan,std::unique_ptr<IRingBuffer<CanFrame>> _rx_buff,std::unique_ptr<IRingBuffer<CanFrame>> &&_tx_buff,const FdCanRxFifoParams &_rx_fifo)
 			:fdcan(_fdcan),
@@ -87,11 +107,8 @@ namespace CommonLib{
 				tx_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
 				tx_header.MessageMarker = 0;
 
-#ifdef STM32G4xx_HAL_H
-				tx_header.DataLength = tx_frame.data_length;
-#elif STM32H7xx_HAL_H
-				tx_header.DataLength = tx_frame.data_length<<16;
-#endif
+				tx_header.DataLength = dlc_macros[tx_frame.data_length];
+
 				HAL_FDCAN_AddMessageToTxFifoQ(fdcan, &tx_header, const_cast<uint8_t*>(tx_frame.data));
 			}
 		}
@@ -108,11 +125,7 @@ namespace CommonLib{
 				tx_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
 				tx_header.MessageMarker = 0;
 
-#ifdef STM32G4xx_HAL_H
-				tx_header.DataLength = tx_frame.data_length;
-#elif STM32H7xx_HAL_H
-				tx_header.DataLength = tx_frame.data_length<<16;
-#endif
+				tx_header.DataLength = dlc_macros[tx_frame.data_length];
 
 				HAL_FDCAN_AddMessageToTxFifoQ(fdcan, &tx_header, const_cast<uint8_t*>(tx_frame.data));
 			}else{

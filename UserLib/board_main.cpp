@@ -40,23 +40,7 @@ namespace BoardElement{
 		uint8_t can_main_rx_buff[sizeof(CommonLib::RingBuffer<CommonLib::CanFrame,5>)];
 		uint8_t can_md_tx_buff[sizeof(CommonLib::RingBuffer<CommonLib::CanFrame,5>)];
 		uint8_t can_md_rx_buff[sizeof(CommonLib::RingBuffer<CommonLib::CanFrame,5>)];
-
-		uint8_t led_r_pwm[sizeof(CommonLib::PWMHard)];
-		uint8_t led_g_pwm[sizeof(CommonLib::PWMHard)];
-		uint8_t led_b_pwm[sizeof(CommonLib::PWMHard)];
-
-		uint8_t led0_gpio[sizeof(CommonLib::GPIO)];
-		uint8_t led1_gpio[sizeof(CommonLib::GPIO)];
-		uint8_t led2_gpio[sizeof(CommonLib::GPIO)];
-		uint8_t led3_gpio[sizeof(CommonLib::GPIO)];
 	}
-
-	auto encs = std::array<BoardLib::AMT21xEnc,4>{
-		BoardLib::AMT21xEnc(&huart5,0x54,1000.0f),
-		BoardLib::AMT21xEnc(&huart3,0x54,1000.0f),
-		BoardLib::AMT21xEnc(&hlpuart1,0x54,1000.0f),
-		BoardLib::AMT21xEnc(&huart2,0x54,1000.0f),
-	};
 
 	auto can_main = CommonLib::FdCanComm{
 		&hfdcan2,
@@ -64,7 +48,7 @@ namespace BoardElement{
 				new(TmpMemoryPool::can_main_tx_buff) CommonLib::RingBuffer<CommonLib::CanFrame,5>{}),
 		std::unique_ptr<CommonLib::RingBuffer<CommonLib::CanFrame,5>>(
 				new(TmpMemoryPool::can_main_rx_buff) CommonLib::RingBuffer<CommonLib::CanFrame,5>{}),
-		CommonLib::FdCanRxFifo1
+		CommonLib::FdCanRxFifo0
 	};
 
 	auto can_md = CommonLib::FdCanComm{
@@ -86,6 +70,14 @@ namespace BoardElement{
 		CommonLib::GPIO{LED2_GPIO_Port,LED2_Pin},
 		CommonLib::GPIO{LED3_GPIO_Port,LED3_Pin}
 	};
+
+	auto encs = std::array<BoardLib::AMT21xEnc,4>{
+		BoardLib::AMT21xEnc(&huart5,0x54,1000.0f),
+		BoardLib::AMT21xEnc(&huart3,0x54,1000.0f),
+		BoardLib::AMT21xEnc(&hlpuart1,0x54,1000.0f),
+		BoardLib::AMT21xEnc(&huart2,0x54,1000.0f),
+	};
+
 
 	auto test_timer = CommonLib::InterruptionTimerHard{&htim15};
 
@@ -168,7 +160,7 @@ void cppmain(void){
 //	printf("start\r\n");
 	HAL_Delay(100);
 	//be::can_main.set_filter_free(0,CommonLib::CanFilterMode::ONLY_EXT);
-	be::can_main.set_filter(0,0x013,0x0FF,CommonLib::CanFilterMode::ONLY_STD);
+	be::can_main.set_filter(0,0x012,0x0FF,CommonLib::CanFilterMode::ONLY_STD);
 	be::can_main.start();
 	printf("can init\r\n");
 
@@ -208,6 +200,7 @@ void cppmain(void){
 
 		cf.is_ext_id = false;
 		cf.id = 0x012;
+		cf.data_length = 8;
 		be::can_main.tx(cf);
 		printf("can tx\r\n");
 
