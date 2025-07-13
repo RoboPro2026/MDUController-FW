@@ -13,6 +13,7 @@
 #include "CommonLib/slcan.hpp"
 #include "CommonLib/serial_if.hpp"
 #include "CommonLib/timer_interruption_control.hpp"
+#include "CommonLib/disturbance_observer.hpp"
 #include "LED_pattern.hpp"
 
 #include <array>
@@ -82,6 +83,11 @@ namespace BoardElement{
 	auto test_timer = CommonLib::InterruptionTimerHard{&htim15};
 
 	auto motor = BoardLib::C6x0Controller{1};
+
+	auto dob_test = CommonLib::DisturbanceObserver{
+		1000.0f,
+		std::make_unique<CommonLib::Math::HighpassFilterBD<float>>(1000.0f,10.0f),
+		5.0f};
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
