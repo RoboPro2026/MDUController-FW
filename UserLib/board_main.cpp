@@ -6,6 +6,9 @@
  */
 #include "main.h"
 
+#include "usbd_cdc_if.h"
+#include "usb_device.h"
+
 #include "CommonLib/math/filter.hpp"
 #include "CommonLib/fdcan_control.hpp"
 #include "CommonLib/gpio.hpp"
@@ -14,13 +17,15 @@
 #include "CommonLib/serial_if.hpp"
 #include "CommonLib/timer_interruption_control.hpp"
 #include "CommonLib/disturbance_observer.hpp"
+#include "CommonLib/usb_cdc.hpp"
+
 #include "LED_pattern.hpp"
+#include "AMT21x_encoder.hpp"
+#include "motor_control.hpp"
 
 #include <array>
 #include <stdio.h>
 #include <bit>
-#include "AMT21x_encoder.hpp"
-#include "motor_control.hpp"
 
 extern FDCAN_HandleTypeDef hfdcan2;
 extern FDCAN_HandleTypeDef hfdcan3;
@@ -34,6 +39,8 @@ extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim15;
 
 extern RNG_HandleTypeDef hrng;
+
+extern USBD_HandleTypeDef hUsbDeviceFS;
 
 namespace BoardElement{
 	namespace TmpMemoryPool{
@@ -88,6 +95,12 @@ namespace BoardElement{
 		1000.0f,
 		std::make_unique<CommonLib::Math::HighpassFilterBD<float>>(1000.0f,10.0f),
 		5.0f};
+
+	auto usb_cdc = CommonLib::UsbCdcComm{&hUsbDeviceFS,
+		std::make_unique<CommonLib::RingBuffer<CommonLib::SerialData,4>>(),
+		std::make_unique<CommonLib::RingBuffer<CommonLib::SerialData,4>>()
+	};
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -230,6 +243,10 @@ void cppmain(void){
 int _write(int file, char *ptr, int len) {
 	HAL_UART_Transmit(&huart2, (uint8_t*) ptr, len,100);
 	return len;
+}
+
+void usb_cdc_rx_callback(const uint8_t *input,size_t size){
+	be::usb_cdc.rx_interrupt_task(input, size);
 }
 
 }
