@@ -41,6 +41,7 @@ extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim15;
 
 extern RNG_HandleTypeDef hrng;
+extern DAC_HandleTypeDef hdac1;
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
@@ -74,11 +75,11 @@ namespace BoardElement{
 	auto LED_g = CommonLib::SequencableIO<CommonLib::PWMHard>{CommonLib::PWMHard{&htim1,TIM_CHANNEL_3}};
 	auto LED_b = CommonLib::SequencableIO<CommonLib::PWMHard>{CommonLib::PWMHard{&htim1,TIM_CHANNEL_4}};
 
-	auto md_state_led = std::array<CommonLib::SequencableIO<CommonLib::GPIO>,4>{
+	auto md_state_led = std::array<CommonLib::SequencableIO<CommonLib::GPIO>,3>{
 		CommonLib::GPIO{LED0_GPIO_Port,LED0_Pin},
 		CommonLib::GPIO{LED1_GPIO_Port,LED1_Pin},
 		CommonLib::GPIO{LED2_GPIO_Port,LED2_Pin},
-		CommonLib::GPIO{LED3_GPIO_Port,LED3_Pin}
+		//CommonLib::GPIO{LED3_GPIO_Port,LED3_Pin}
 	};
 
 	auto encs = std::array<BoardLib::AMT21xEnc,4>{
@@ -170,15 +171,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 }
 
-//auto filter = CommonLib::Math::LowpassFilterBD<float>(1000.0f,10.0f);
-//auto filter = CommonLib::Math::BiquadFilter<float>(1000.0f,10.0f,10.0f)
-auto filter = CommonLib::Math::HighpassFilterBD<float>(1000.0f,10.0f);
+//auto filter = CommonLib::Math::LowpassFilterBD<float>(5000.0f,100.0f);
+auto filter = CommonLib::Math::BiquadFilter<float>(5000.0f,200.0f,50.0f);
+//auto filter = CommonLib::Math::HighpassFilterBD<float>(5000.0f,500.0f);
 
 //メイン関数
 extern "C"{
 void cppmain(void){
+
 	HAL_Delay(500);
-//	printf("start\r\n");
+	printf("start\r\n");
 	HAL_Delay(100);
 	//be::can_main.set_filter_free(0,CommonLib::CanFilterMode::ONLY_EXT);
 	be::can_main.set_filter(0,0x012,0x0FF,CommonLib::CanFilterMode::ONLY_STD);
@@ -188,16 +190,21 @@ void cppmain(void){
 	printf("tim15_f:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(be::test_timer.get_handler()->Instance));
 
 	be::test_timer.set_task([](){
-		be::md_state_led[2].update();
-//		int32_t rand;
-//		HAL_RNG_GenerateRandomNumber(&hrng,(uint32_t*)(&rand));
+//		be::md_state_led[2].update();
+		static int32_t rand = 0;
+		rand ++;
+		//HAL_RNG_GenerateRandomNumber(&hrng,(uint32_t*)(&rand));
+
+		float frand = static_cast<float>(rand)*(1.0/static_cast<float>(std::numeric_limits<int32_t>::max()));
+		//rand = static_cast<uint16_t>(frand*4096.0)
+
 //		float frand = rand*(1/static_cast<float>(std::numeric_limits<int32_t>().max()));
 //		printf("%3.4f\r\n",filter(frand));
 	});
 	be::test_timer.start_timer(0.002f);
 	printf("tim15_period:%f\r\n",be::test_timer.get_timer_period());
 
-//
+	HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
 //	be::LED_r.io->start();
 //	be::LED_g.io->start();
 //	be::LED_b.io->start();
@@ -205,6 +212,7 @@ void cppmain(void){
 	while(1){
 		be::md_state_led[2].play(BoardLib::LEDPattern::test,false);
 
+		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 1000);
 		HAL_Delay(100);
 
 //		//can test
@@ -239,6 +247,30 @@ void cppmain(void){
 			e.request_position();
 		}
 		HAL_Delay(100);
+	}
+}
+
+void filter_test(void){
+	HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
+
+	be::test_timer.set_task([](){
+		int32_t rand;
+		HAL_RNG_GenerateRandomNumber(&hrng,(uint32_t*)&rand);
+		float frand = static_cast<float>(rand)/static_cast<float>(std::numeric_limits<int32_t>::max());
+		frand = filter(frand);
+		int16_t dac_val = static_cast<int16_t>(frand*500.0);
+		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac_val+2000);
+	});
+	be::test_timer.start_timer(0.0002f);
+
+	while(1){
+//		uint32_t rand;
+//		HAL_RNG_GenerateRandomNumber(&hrng,(uint32_t*)(&rand));
+//		float frand = static_cast<float>(rand)*(1.0/static_cast<float>(std::numeric_limits<uint32_t>::max()));
+//		dac_val = static_cast<uint16_t>(frand*4096.0);
+//		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac_val);
+//		dac_val ++;
+//		HAL_Delay(1);
 	}
 }
 

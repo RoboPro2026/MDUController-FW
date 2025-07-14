@@ -27,8 +27,7 @@ namespace CommonLib{
 //	usb_cdc.rx_interrupt_task(input, size);
 //}
 //この関数をUSB_Device/App/usb_cdc_if.cのCDC_Receive_FS関数内で呼び出す
-//usb_cdc.tx_interrupt_task関数はタイマー割込みなどを用いて定期的に実行すること
-//送信バッファに入りきらなかったデータについて管理する
+//usb_cdc.tx_buff_management関数はタイマー割込みなどを用いて定期的に実行すること
 
 class UsbCdcComm : public ISerial{
 private:
@@ -71,7 +70,7 @@ public:
 	size_t tx_available(void)const override{
 		return tx_buff->get_free_level();
 	}
-	void tx_buff_management(void){
+	void tx_buff_management(void){//送信しきれなかったデータについて管理する
 		USBD_CDC_HandleTypeDef *cdc = (USBD_CDC_HandleTypeDef*)usb->pClassData;
 		if (cdc->TxState != 0){
 			SerialData tx_tmp;

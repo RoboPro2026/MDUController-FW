@@ -46,7 +46,7 @@ namespace CommonLib{
 		const uint32_t head_mask = (sizeof(angle_buff)/sizeof(float) - 1);
 
 		//angle -> rad
-		const float coef_angle_to_rad;
+		float coef_angle_to_rad;
 
 	public:
 		ContinuableEncoder(size_t _resolution_bit,float update_freq,float gear_ratio = 1.0f):
@@ -63,6 +63,13 @@ namespace CommonLib{
 
 		float get_rad(void)const override{return coef_angle_to_rad*static_cast<float>(get_angle());}
 		float get_rad_speed(void)const override{return coef_angle_to_rad*static_cast<float>(get_speed());}
+
+		void set_gear_ratio(float gear_ratio){
+			coef_angle_to_rad = 2*M_PI/(gear_ratio * static_cast<float>(resolution));
+		}
+		float get_gear_ratio(void)const{
+			return coef_angle_to_rad*static_cast<float>(resolution) / (2.0*M_PI);
+		}
 
 		virtual int32_t update(uint32_t _angle){
 			int32_t new_angle = _angle&mask;
