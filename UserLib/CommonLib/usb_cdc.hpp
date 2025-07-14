@@ -50,7 +50,9 @@ public:
 		return usb;
 	}
 
+	////////////////////////////////////////////////////////////////////////////////////////////
 	//tx functions
+	////////////////////////////////////////////////////////////////////////////////////////////
 	bool tx(const SerialData &data) override{
 		USBD_CDC_HandleTypeDef *cdc = (USBD_CDC_HandleTypeDef*)usb->pClassData;
 
@@ -69,9 +71,19 @@ public:
 	size_t tx_available(void)const override{
 		return tx_buff->get_free_level();
 	}
-	void tx_interrupt_task(void);
+	void tx_buff_management(void){
+		USBD_CDC_HandleTypeDef *cdc = (USBD_CDC_HandleTypeDef*)usb->pClassData;
+		if (cdc->TxState != 0){
+			SerialData tx_tmp;
+			if(tx_buff->pop(tx_tmp)){
+				tx(tx_tmp);
+			}
+		}
+	}
 
+	////////////////////////////////////////////////////////////////////////////////////////////
 	//rx functions
+	////////////////////////////////////////////////////////////////////////////////////////////
 	bool rx(SerialData &data) override{
 		return rx_buff->pop(data);
 	}

@@ -42,11 +42,7 @@ namespace CommonLib{
 			if constexpr(std::derived_from<T, IPWM>){
 				io(0.0f);
 			}else{
-				if(v > 0.0f){
-					io(true);
-				}else{
-					io(false);
-				}
+				io(v>0.0f);
 			}
 		}
 
