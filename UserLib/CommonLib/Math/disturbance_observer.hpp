@@ -8,12 +8,12 @@
 #ifndef COMMONLIB_DISTURBANCE_OBSERVER_HPP_
 #define COMMONLIB_DISTURBANCE_OBSERVER_HPP_
 
-#include "Math/filter.hpp"
+#include "filter.hpp"
 
 #include <memory>
 
 //TODO:開発と動作確認
-namespace CommonLib{
+namespace CommonLib::Math{
 
 class DisturbanceObserver{
 private:

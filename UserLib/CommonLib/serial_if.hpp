@@ -71,7 +71,7 @@ public:
 	size_t tx_available(void)const override{
 		return is_transmitting ? 0:1;
 	}
-	void tx_interrupt_task(void){
+	void tx_interrupt_task(void){ //送信完了割り込みで呼ぶこと
 		is_transmitting = false;
 	}
 
@@ -86,7 +86,7 @@ public:
 		return rx_buff->get_busy_level();
 	}
 
-	void rx_interrupt_task(void){
+	void rx_interrupt_task(void){ //受信完了割り込みで呼ぶこと
 		if((rx_tmp_byte=='\r') || (rx_tmp_byte=='\n') || (rx_tmp_byte=='\0') || (rx_tmp_packet.size >= rx_tmp_packet.max_size-1)){
 			rx_tmp_packet.data[rx_tmp_packet.size] = rx_tmp_byte;
 			rx_tmp_packet.size ++;

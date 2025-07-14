@@ -8,14 +8,14 @@
 #ifndef PID_HPP_
 #define PID_HPP_
 
-#include "Math/filter.hpp"
+#include "filter.hpp"
 
 #include <cfloat>
 #include <algorithm>
 #include <limits>
 #include <utility>
 
-namespace CommonLib{
+namespace CommonLib::Math{
 
 class PIController{
 protected:
@@ -85,7 +85,7 @@ protected:
 	float prev_error = 0.0f;
 
 	const float lpf_eta;
-	Math::LowpassFilterBD<float> lpf;
+	LowpassFilterBD<float> lpf;
 public:
 	PIDController(float _pid_freq,float _kp,float _ki,float _kd, float _k_anti_windup,
 			float _limit_min = std::numeric_limits<float>().lowest(),
@@ -217,7 +217,7 @@ public:
 	}
 };
 
-}
+}//namespace CommonLib::Math
 
 
 

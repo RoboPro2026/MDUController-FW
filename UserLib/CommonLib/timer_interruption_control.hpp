@@ -29,7 +29,7 @@ public:
 	:tim(_tim),task(_task){}
 
 	bool start_timer(float period_s){ //秒単位で指定,0入力で停止
-		uint32_t freq = TimerHelper::get_timer_clock_freq(tim);
+		uint32_t freq = TimerHelper::get_timer_clock_freq(tim->Instance);
 		uint32_t period = (period_s * static_cast<float>(freq));
 		if((period == 0) || (period_s < 0.0f)){
 			HAL_TIM_Base_Stop_IT(tim);
@@ -56,7 +56,7 @@ public:
 
 	float get_timer_period(void)const{
 		if(HAL_TIM_Base_GetState(tim) == HAL_TIM_STATE_BUSY){
-			uint32_t freq = TimerHelper::get_timer_clock_freq(tim);
+			uint32_t freq = TimerHelper::get_timer_clock_freq(tim->Instance);
 			return static_cast<float>(__HAL_TIM_GET_AUTORELOAD(tim)+1)/freq;
 		}else{
 			return 0;

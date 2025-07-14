@@ -9,14 +9,16 @@
 #include "usbd_cdc_if.h"
 #include "usb_device.h"
 
-#include "CommonLib/math/filter.hpp"
+#include "CommonLib/Math/filter.hpp"
+#include "CommonLib/Math/disturbance_observer.hpp"
+
 #include "CommonLib/fdcan_control.hpp"
 #include "CommonLib/gpio.hpp"
 #include "CommonLib/sequencable_io.hpp"
 #include "CommonLib/slcan.hpp"
 #include "CommonLib/serial_if.hpp"
 #include "CommonLib/timer_interruption_control.hpp"
-#include "CommonLib/disturbance_observer.hpp"
+
 #include "CommonLib/usb_cdc.hpp"
 
 #include "LED_pattern.hpp"
@@ -91,7 +93,7 @@ namespace BoardElement{
 
 	auto motor = BoardLib::C6x0Controller{1};
 
-	auto dob_test = CommonLib::DisturbanceObserver{
+	auto dob_test = CommonLib::Math::DisturbanceObserver{
 		1000.0f,
 		std::make_unique<CommonLib::Math::HighpassFilterBD<float>>(1000.0f,10.0f),
 		5.0f};
@@ -183,7 +185,7 @@ void cppmain(void){
 	be::can_main.start();
 	printf("can init\r\n");
 
-	printf("tim15_f:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(be::test_timer.get_handler()));
+	printf("tim15_f:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(be::test_timer.get_handler()->Instance));
 
 	be::test_timer.set_task([](){
 		be::md_state_led[2].update();

@@ -8,7 +8,7 @@
 #ifndef MOTOR_CONTROL_HPP_
 #define MOTOR_CONTROL_HPP_
 
-#include "CommonLib/pid.hpp"
+#include "CommonLib/Math/pid.hpp"
 #include "C6x0_encoder.hpp"
 #include <optional>
 
@@ -30,18 +30,18 @@ private:
 	float target_rad = 0.0f;
 	float target_speed = 0.0f;
 public:
-	CommonLib::PIDController spd_pid;
-	CommonLib::PIDController pos_pid;
+	CommonLib::Math::PIDController spd_pid;
+	CommonLib::Math::PIDController pos_pid;
 	BoardLib::C6x0Enc enc;
 
 	C6x0Controller(float _motor_id,float feedbuck_freq = 1000.0f,float _gear_ratio = 36.0f)
 	:motor_id(_motor_id),
 	mode(ControlMode::OPEN_LOOP),
-	spd_pid(CommonLib::PIDBuilder(feedbuck_freq)
+	spd_pid(CommonLib::Math::PIDBuilder(feedbuck_freq)
 				.set_gain(0.000'1f, 0.000'05f, 0.0f)
 				.set_limit(1.0f)
 				.build()),
-	pos_pid(CommonLib::PIDBuilder(feedbuck_freq)
+	pos_pid(CommonLib::Math::PIDBuilder(feedbuck_freq)
 				.set_gain(0.000'1f, 0.000'05f, 0.0f)
 				.set_limit(0.0f)
 				.build()),
