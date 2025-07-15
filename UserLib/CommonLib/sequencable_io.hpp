@@ -54,7 +54,8 @@ namespace CommonLib{
 			io(std::move(_io)){
 		}
 
-		bool play(const Note *pattern,bool force = true){
+		//pattern:実行するシーケンス，force:すでに別のシーケンスが走っている場合に上書きして実行するか
+		bool play(const Note *pattern,bool force = false){
 			if(is_playing() && not force){
 				return false;
 			}
@@ -93,7 +94,7 @@ namespace CommonLib{
 			}
 		}
 
-		void out_not_force(float val){ //何らかのシーケンスを実行中の場合書き込まない
+		void output_not_force(float val){ //何らかのシーケンスを実行中の場合書き込まない
 			if(not is_playing()){
 				set_duty(val);
 			}

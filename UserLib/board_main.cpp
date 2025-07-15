@@ -40,9 +40,6 @@ extern UART_HandleTypeDef huart3;
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim15;
 
-extern RNG_HandleTypeDef hrng;
-extern DAC_HandleTypeDef hdac1;
-
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
 namespace BoardElement{
@@ -204,16 +201,12 @@ void cppmain(void){
 	be::test_timer.start_timer(0.002f);
 	printf("tim15_period:%f\r\n",be::test_timer.get_timer_period());
 
-	HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
 //	be::LED_r.io->start();
 //	be::LED_g.io->start();
 //	be::LED_b.io->start();
 
 	while(1){
 		be::md_state_led[2].play(BoardLib::LEDPattern::test,false);
-
-		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 1000);
-		HAL_Delay(100);
 
 //		//can test
 		CommonLib::Protocol::DataPacket dp;
@@ -247,30 +240,6 @@ void cppmain(void){
 			e.request_position();
 		}
 		HAL_Delay(100);
-	}
-}
-
-void filter_test(void){
-	HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
-
-	be::test_timer.set_task([](){
-		int32_t rand;
-		HAL_RNG_GenerateRandomNumber(&hrng,(uint32_t*)&rand);
-		float frand = static_cast<float>(rand)/static_cast<float>(std::numeric_limits<int32_t>::max());
-		frand = filter(frand);
-		int16_t dac_val = static_cast<int16_t>(frand*500.0);
-		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac_val+2000);
-	});
-	be::test_timer.start_timer(0.0002f);
-
-	while(1){
-//		uint32_t rand;
-//		HAL_RNG_GenerateRandomNumber(&hrng,(uint32_t*)(&rand));
-//		float frand = static_cast<float>(rand)*(1.0/static_cast<float>(std::numeric_limits<uint32_t>::max()));
-//		dac_val = static_cast<uint16_t>(frand*4096.0);
-//		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac_val);
-//		dac_val ++;
-//		HAL_Delay(1);
 	}
 }
 
