@@ -8,7 +8,10 @@
 #ifndef COMMONLIB_Q_FORMAT_HPP_
 #define COMMONLIB_Q_FORMAT_HPP_
 
+//CMSIS DSPをつかってるとき向け
 #include "arm_math.h"
+
+#include <concepts>
 
 namespace CommonLib::Math{
 

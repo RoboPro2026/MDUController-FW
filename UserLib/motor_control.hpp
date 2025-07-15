@@ -33,13 +33,13 @@ class C6x0Controller{
 private:
 	//ロボマスモーターのモーターパラメータ
 	//TODO:値の確認
-	static constexpr float torque_coef[2] = {0.18, 0.3};
+	static constexpr float torque_coef_inv[2] = {1.0f/0.18f, 1.0f/0.3f}; //トルク定数の逆数
 	static constexpr float gear_ratio[2] = {19.0,36.0};
 	static constexpr float get_gear_ratio(MotorType m_type){
 		return m_type != MotorType::VESC ? gear_ratio[static_cast<size_t>(m_type)] : gear_ratio[static_cast<size_t>(MotorType::C610)];
 	}
-	static constexpr float get_torque_coef(MotorType m_type){
-		return m_type != MotorType::VESC ? gear_ratio[static_cast<size_t>(m_type)] : torque_coef[static_cast<size_t>(MotorType::C610)];
+	static constexpr float get_torque_coef_inv(MotorType m_type){
+		return m_type != MotorType::VESC ? torque_coef_inv[static_cast<size_t>(m_type)] : torque_coef_inv[static_cast<size_t>(MotorType::C610)];
 	}
 
 	const float motor_id;
@@ -89,9 +89,7 @@ public:
 	void set_target_rad(float _target_rad){ target_rad = _target_rad;}
 	float get_target_rad(void) const {return target_rad;}
 
-	float pid_operation(const CommonLib::CanFrame &frame);
-
-
+	float pid_operation(const CommonLib::CanFrame &frame); //return current value
 };
 }
 

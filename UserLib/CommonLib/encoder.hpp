@@ -68,7 +68,7 @@ namespace CommonLib{
 			coef_angle_to_rad = 2*M_PI/(gear_ratio * static_cast<float>(resolution));
 		}
 		float get_gear_ratio(void)const{
-			return coef_angle_to_rad*static_cast<float>(resolution) / (2.0*M_PI);
+			return 2*M_PI/(coef_angle_to_rad * static_cast<float>(resolution));
 		}
 
 		virtual int32_t update(uint32_t _angle){
