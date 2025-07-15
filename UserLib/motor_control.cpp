@@ -41,19 +41,16 @@ float C6x0Controller::pid_operation(const CommonLib::CanFrame &frame){
 	enc.update_by_can_msg(frame);
 
 	switch(mode){
+	case ControlMode::POSITION:
+		target_speed = pos_pid(target_rad,enc.get_rad());
+	case ControlMode::SPEED:
+		torque = spd_pid(target_speed,enc.get_rad_speed());
+		if(dob_en){
+			torque -= dob.observe_disturbance(enc.get_rad_speed(),torque);
+		}
 	case ControlMode::OPEN_LOOP:
 		//nop
 		break;
-	case ControlMode::SPEED:
-		torque = spd_pid(target_speed,enc.get_rad_speed());
-		break;
-	case ControlMode::POSITION:
-		target_speed = pos_pid(target_rad,enc.get_rad());
-		torque = spd_pid(target_speed,enc.get_rad_speed());
-		break;
-//	case ControlMode::ABS_POSITION_MODE:
-//		//nop
-//		break;
 	default:
 		//nop
 		break;

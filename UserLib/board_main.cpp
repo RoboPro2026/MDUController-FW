@@ -112,10 +112,6 @@ namespace BoardElement{
 namespace be = BoardElement;
 
 //uart(rs485
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
-{
-
-}
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == be::encs[0].get_handler()){
