@@ -26,13 +26,14 @@ void C6x0Controller::set_control_mode(ControlMode _mode){
 //		pos_pid.reset();
 //		break;
 	default:
-		power = 0.0f;
+		torque= 0.0f;
 		target_rad = 0.0f;
 		target_speed = 0.0f;
 		spd_pid.reset();
 		pos_pid.reset();
 		break;
 	}
+	dob.reset();
 	mode = _mode;
 }
 
@@ -44,11 +45,11 @@ float C6x0Controller::pid_operation(const CommonLib::CanFrame &frame){
 		//nop
 		break;
 	case ControlMode::SPEED:
-		power = spd_pid(target_speed,enc.get_rad_speed());
+		torque = spd_pid(target_speed,enc.get_rad_speed());
 		break;
 	case ControlMode::POSITION:
 		target_speed = pos_pid(target_rad,enc.get_rad());
-		power = spd_pid(target_speed,enc.get_rad_speed());
+		torque = spd_pid(target_speed,enc.get_rad_speed());
 		break;
 //	case ControlMode::ABS_POSITION_MODE:
 //		//nop
@@ -58,7 +59,8 @@ float C6x0Controller::pid_operation(const CommonLib::CanFrame &frame){
 		break;
 	}
 
-	return power*get_torque_coef(motor_type);
+	//TODO:逆数
+	return torque/get_torque_coef(motor_type);
 }
 }
 

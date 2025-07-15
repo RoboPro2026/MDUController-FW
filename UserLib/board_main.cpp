@@ -188,18 +188,9 @@ void cppmain(void){
 	printf("tim15_f:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(be::test_timer.get_handler()->Instance));
 
 	be::test_timer.set_task([](){
-//		be::md_state_led[2].update();
-		static int32_t rand = 0;
-		rand ++;
-		//HAL_RNG_GenerateRandomNumber(&hrng,(uint32_t*)(&rand));
-
-		float frand = static_cast<float>(rand)*(1.0/static_cast<float>(std::numeric_limits<int32_t>::max()));
-		//rand = static_cast<uint16_t>(frand*4096.0)
-
-//		float frand = rand*(1/static_cast<float>(std::numeric_limits<int32_t>().max()));
-//		printf("%3.4f\r\n",filter(frand));
+		be::md_state_led[2].update();
 	});
-	be::test_timer.start_timer(0.002f);
+	be::test_timer.start_timer(0.001f);
 	printf("tim15_period:%f\r\n",be::test_timer.get_timer_period());
 
 //	be::LED_r.io->start();

@@ -60,7 +60,7 @@ public:
 		coef1 = solve_coef1(f_sample,inertia,friction_coef);
 	}
 
-	void reset(void){
+	void reset(void)override{
 		prev_input = 0.0f;
 		prev_output = 0.0f;
 	}

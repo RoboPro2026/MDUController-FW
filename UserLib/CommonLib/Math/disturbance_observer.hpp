@@ -30,10 +30,10 @@ private:
 public:
 	T inverse_model; //制御対象の逆モデル
 
-	DisturbanceObserver(float _operation_freq,T _inverse_model,float lpf_cutoff_freq)
+	DisturbanceObserver(float _operation_freq,T&& _inverse_model,float lpf_cutoff_freq) //なんとなく右辺値参照にしたけどべつにいいかも
 		:operation_freq(_operation_freq),
 		 lpf(operation_freq,lpf_cutoff_freq,1.0f),
-		 inverse_model(_inverse_model){
+		 inverse_model(std::move(_inverse_model)){
 	}
 
 	float observe_disturbance(float feedback_val,float controller_output){
@@ -46,6 +46,12 @@ public:
 
 	void set_lpf_cutoff_freq(float f_cutoff){
 		lpf.set_param(operation_freq,f_cutoff,1.0f);
+	}
+
+	void reset(void){
+		prev_controller_output = 0.0f;
+		prev_observed_disturbance = 0.0f;
+		lpf.reset();
 	}
 
 };

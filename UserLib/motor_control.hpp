@@ -47,7 +47,7 @@ private:
 	MotorType motor_type;
 	bool dob_en;
 
-	float power = 0.0f;
+	float torque = 0.0f;
 	float target_rad = 0.0f;
 	float target_speed = 0.0f;
 public:
@@ -77,6 +77,9 @@ public:
 		enc.set_gear_ratio(get_gear_ratio(m_type));
 	}
 
+	void  set_torque(float _torqeu){torque = _torqeu;}
+	float get_torque(void) const {return torque;}
+
 	void set_control_mode(ControlMode m);
 	ControlMode get_control_mode(void)const{ return mode; }
 
@@ -87,7 +90,7 @@ public:
 	float get_target_rad(void) const {return target_rad;}
 
 	float pid_operation(const CommonLib::CanFrame &frame);
-	float get_power(void) const {return power;}
+
 
 };
 }

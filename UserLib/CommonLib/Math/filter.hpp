@@ -21,6 +21,7 @@ namespace CommonLib::Math{
 	class IFilter{
 	public:
 		virtual T operator() (T input) = 0;
+		virtual void reset(void) = 0;
 		virtual ~IFilter(){}
 	};
 
@@ -45,7 +46,7 @@ namespace CommonLib::Math{
 		void set_param(float sampling_freq, float cutoff_freq){
 			k = 2*M_PI*cutoff_freq/(sampling_freq + 2*M_PI*cutoff_freq);
 		}
-		void reset(void){
+		void reset(void)override{
 			data = static_cast<T>(0);
 		}
 	};
@@ -96,7 +97,7 @@ namespace CommonLib::Math{
 			a1 = -2.0 * cos_omega * a0_inv;
 			a2 = (1.0 - alpha) * a0_inv;
 		}
-		void reset(void){
+		void reset(void)override{
 			output = static_cast<T>(0);
 			x1 = static_cast<T>(0);
 			x2 = static_cast<T>(0);
@@ -125,7 +126,7 @@ namespace CommonLib::Math{
 		T get(void)const{
 			return data;
 		}
-		void reset(void){
+		void reset(void)override{
 			data = static_cast<T>(0);
 		}
 	};
