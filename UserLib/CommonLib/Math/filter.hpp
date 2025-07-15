@@ -113,6 +113,7 @@ namespace CommonLib::Math{
 		T prev_input = static_cast<T>(0);
 		const float k = 0.0f;
 	public:
+		//G(s)=tau*s / (tau*s + 1)を後退差分で離散化
 		HighpassFilterBD(float _k):k(_k){}
 		HighpassFilterBD(float f_sample, float f_cutoff):k(2*M_PI*f_cutoff/(f_sample + 2*M_PI*f_cutoff)){}
 

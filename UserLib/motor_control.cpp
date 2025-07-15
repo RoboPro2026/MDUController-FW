@@ -58,7 +58,7 @@ float C6x0Controller::pid_operation(const CommonLib::CanFrame &frame){
 		break;
 	}
 
-	return power;
+	return power*get_torque_coef(motor_type);
 }
 }
 

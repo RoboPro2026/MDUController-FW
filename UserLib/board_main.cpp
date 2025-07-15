@@ -91,10 +91,11 @@ namespace BoardElement{
 
 	auto motor = BoardLib::C6x0Controller{1};
 
-	auto dob_test = CommonLib::Math::DisturbanceObserver{
+	auto dob_test = CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel>{
 		1000.0f,
-		std::make_unique<CommonLib::Math::HighpassFilterBD<float>>(1000.0f,10.0f),
-		5.0f};
+		BoardLib::MotorInverceModel(1000.0f,1.0f,1.0f),
+		5.0
+	};
 
 	auto usb_cdc = CommonLib::UsbCdcComm{&hUsbDeviceFS,
 		std::make_unique<CommonLib::RingBuffer<CommonLib::SerialData,4>>(),
