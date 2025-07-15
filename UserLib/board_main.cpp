@@ -39,6 +39,8 @@ extern UART_HandleTypeDef huart3;
 
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim15;
+extern TIM_HandleTypeDef htim16;
+extern TIM_HandleTypeDef htim17;
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
@@ -112,15 +114,7 @@ namespace be = BoardElement;
 //uart(rs485
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(huart == be::encs[0].get_handler()){
-		be::encs[0].tx_interrupt_task();
-	}else if(huart == be::encs[1].get_handler()){
-		be::encs[1].tx_interrupt_task();
-	}else if(huart == be::encs[2].get_handler()){
-		be::encs[2].tx_interrupt_task();
-	}else if(huart == be::encs[3].get_handler()){
-		be::encs[3].tx_interrupt_task();
-	}
+
 }
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -192,6 +186,10 @@ void cppmain(void){
 	});
 	be::test_timer.start_timer(0.001f);
 	printf("tim15_period:%f\r\n",be::test_timer.get_timer_period());
+	printf("tim1 clock:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(htim1.Instance));
+	printf("tim15 clock:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(htim15.Instance));
+	printf("tim16 clock:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(htim16.Instance));
+	printf("tim17 clock:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(htim17.Instance));
 
 //	be::LED_r.io->start();
 //	be::LED_g.io->start();
