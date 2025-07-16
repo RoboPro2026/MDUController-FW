@@ -37,7 +37,7 @@ void C6x0Controller::set_control_mode(ControlMode _mode){
 	mode = _mode;
 }
 
-float C6x0Controller::pid_operation(const CommonLib::CanFrame &frame){
+float C6x0Controller::pid_operation(const CommonLib::CanFrame &frame){ //
 	enc.update_by_can_msg(frame);
 
 	switch(mode){
@@ -45,7 +45,7 @@ float C6x0Controller::pid_operation(const CommonLib::CanFrame &frame){
 		target_speed = pos_pid(target_rad,enc.get_rad());
 	case ControlMode::SPEED:
 		torque = spd_pid(target_speed,enc.get_rad_speed());
-		if(dob_en){
+		if(dob_enable){
 			torque -= dob.observe_disturbance(enc.get_rad_speed(),torque);
 		}
 	case ControlMode::OPEN_LOOP:
@@ -56,7 +56,7 @@ float C6x0Controller::pid_operation(const CommonLib::CanFrame &frame){
 		break;
 	}
 
-	return torque*get_torque_coef_inv(motor_type);
+	return torque*MotorParam::get_torque_coef_inv(motor_type);
 }
 }
 

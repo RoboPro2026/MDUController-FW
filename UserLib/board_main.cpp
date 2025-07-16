@@ -91,7 +91,7 @@ namespace BoardElement{
 
 	auto test_timer = CommonLib::InterruptionTimerHard{&htim15};
 
-	auto motor = BoardLib::C6x0Controller{1};
+	auto motor = BoardLib::C6x0ControllerBuilder(0,BoardLib::MotorType::C610).build();
 
 	auto dob_test = CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel>{
 		1000.0f,
@@ -183,6 +183,7 @@ void cppmain(void){
 	be::test_timer.start_timer(0.001f);
 	printf("tim15_period:%f\r\n",be::test_timer.get_timer_period());
 	printf("tim1 clock:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(htim1.Instance));
+//	printf("tim2 clock:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(htim2.Instance));
 	printf("tim15 clock:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(htim15.Instance));
 	printf("tim16 clock:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(htim16.Instance));
 	printf("tim17 clock:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(htim17.Instance));
