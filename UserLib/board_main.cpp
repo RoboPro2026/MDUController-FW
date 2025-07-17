@@ -18,7 +18,6 @@
 #include "CommonLib/slcan.hpp"
 #include "CommonLib/serial_if.hpp"
 #include "CommonLib/timer_interruption_control.hpp"
-
 #include "CommonLib/usb_cdc.hpp"
 
 #include "LED_pattern.hpp"
@@ -26,8 +25,8 @@
 #include "motor_control.hpp"
 
 #include <array>
-#include <stdio.h>
 #include <bit>
+#include <stdio.h>
 
 extern FDCAN_HandleTypeDef hfdcan2;
 extern FDCAN_HandleTypeDef hfdcan3;
