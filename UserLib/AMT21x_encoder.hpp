@@ -17,7 +17,7 @@
 namespace BoardLib{
 	class AMT21xEnc:public CommonLib::ContinuableEncoder{
 	private:
-		static constexpr size_t enc_resolution = 12;
+		static constexpr size_t enc_resolution = 14;
 		UART_HandleTypeDef* const uart;
 
 		const uint8_t enc_id = 0x36;
@@ -30,7 +30,7 @@ namespace BoardLib{
 		bool no_responce;
 
 	public:
-		AMT21xEnc(UART_HandleTypeDef* _uart,uint8_t _enc_id,float update_freq,bool is_inv = false)
+		AMT21xEnc(UART_HandleTypeDef* _uart,uint8_t _enc_id = 0x54,float update_freq = 1000.0f,bool is_inv = false)
 			:ContinuableEncoder(enc_resolution,update_freq),
 			 uart(_uart),
 			 enc_id(_enc_id),
