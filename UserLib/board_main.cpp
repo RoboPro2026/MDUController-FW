@@ -44,64 +44,67 @@ extern TIM_HandleTypeDef htim17;
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
+namespace Clib = CommonLib;
+namespace Blib = BoardLib;
+
 namespace BoardElement{
 	namespace TmpMemoryPool{
-		uint8_t can_main_tx_buff[sizeof(CommonLib::RingBuffer<CommonLib::CanFrame,5>)];
-		uint8_t can_main_rx_buff[sizeof(CommonLib::RingBuffer<CommonLib::CanFrame,5>)];
-		uint8_t can_md_tx_buff[sizeof(CommonLib::RingBuffer<CommonLib::CanFrame,5>)];
-		uint8_t can_md_rx_buff[sizeof(CommonLib::RingBuffer<CommonLib::CanFrame,5>)];
+		uint8_t can_main_tx_buff[sizeof(Clib::RingBuffer<Clib::CanFrame,5>)];
+		uint8_t can_main_rx_buff[sizeof(Clib::RingBuffer<Clib::CanFrame,5>)];
+		uint8_t can_md_tx_buff[sizeof(Clib::RingBuffer<Clib::CanFrame,5>)];
+		uint8_t can_md_rx_buff[sizeof(Clib::RingBuffer<Clib::CanFrame,5>)];
 	}
 
-	auto can_main = CommonLib::FdCanComm{
+	auto can_main = Clib::FdCanComm{
 		&hfdcan2,
-		std::unique_ptr<CommonLib::RingBuffer<CommonLib::CanFrame,5>>(
-				new(TmpMemoryPool::can_main_tx_buff) CommonLib::RingBuffer<CommonLib::CanFrame,5>{}),
-		std::unique_ptr<CommonLib::RingBuffer<CommonLib::CanFrame,5>>(
-				new(TmpMemoryPool::can_main_rx_buff) CommonLib::RingBuffer<CommonLib::CanFrame,5>{}),
-		CommonLib::FdCanRxFifo0
+		std::unique_ptr<Clib::RingBuffer<Clib::CanFrame,5>>(
+				new(TmpMemoryPool::can_main_tx_buff) Clib::RingBuffer<Clib::CanFrame,5>{}),
+		std::unique_ptr<Clib::RingBuffer<Clib::CanFrame,5>>(
+				new(TmpMemoryPool::can_main_rx_buff) Clib::RingBuffer<Clib::CanFrame,5>{}),
+		Clib::FdCanRxFifo0
 	};
 
-	auto can_md = CommonLib::FdCanComm{
+	auto can_md = Clib::FdCanComm{
 		&hfdcan3,
-		std::unique_ptr<CommonLib::RingBuffer<CommonLib::CanFrame,5>>(
-				new(TmpMemoryPool::can_md_tx_buff) CommonLib::RingBuffer<CommonLib::CanFrame,5>{}),
-		std::unique_ptr<CommonLib::RingBuffer<CommonLib::CanFrame,5>>(
-				new(TmpMemoryPool::can_md_rx_buff) CommonLib::RingBuffer<CommonLib::CanFrame,5>{}),
-		CommonLib::FdCanRxFifo1
+		std::unique_ptr<Clib::RingBuffer<Clib::CanFrame,5>>(
+				new(TmpMemoryPool::can_md_tx_buff) Clib::RingBuffer<Clib::CanFrame,5>{}),
+		std::unique_ptr<Clib::RingBuffer<Clib::CanFrame,5>>(
+				new(TmpMemoryPool::can_md_rx_buff) Clib::RingBuffer<Clib::CanFrame,5>{}),
+		Clib::FdCanRxFifo1
 	};
 
-	auto LED_r = CommonLib::SequencableIO<CommonLib::PWMHard>{CommonLib::PWMHard{&htim1,TIM_CHANNEL_2}};
-	auto LED_g = CommonLib::SequencableIO<CommonLib::PWMHard>{CommonLib::PWMHard{&htim1,TIM_CHANNEL_3}};
-	auto LED_b = CommonLib::SequencableIO<CommonLib::PWMHard>{CommonLib::PWMHard{&htim1,TIM_CHANNEL_4}};
+	auto LED_r = Clib::SequencableIO<Clib::PWMHard>{Clib::PWMHard{&htim1,TIM_CHANNEL_2}};
+	auto LED_g = Clib::SequencableIO<Clib::PWMHard>{Clib::PWMHard{&htim1,TIM_CHANNEL_3}};
+	auto LED_b = Clib::SequencableIO<Clib::PWMHard>{Clib::PWMHard{&htim1,TIM_CHANNEL_4}};
 
-	auto md_state_led = std::array<CommonLib::SequencableIO<CommonLib::GPIO>,3>{
-		CommonLib::GPIO{LED0_GPIO_Port,LED0_Pin},
-		CommonLib::GPIO{LED1_GPIO_Port,LED1_Pin},
-		CommonLib::GPIO{LED2_GPIO_Port,LED2_Pin},
-		//CommonLib::GPIO{LED3_GPIO_Port,LED3_Pin}
+	auto md_state_led = std::array<Clib::SequencableIO<Clib::GPIO>,3>{
+		Clib::GPIO{LED0_GPIO_Port,LED0_Pin},
+		Clib::GPIO{LED1_GPIO_Port,LED1_Pin},
+		Clib::GPIO{LED2_GPIO_Port,LED2_Pin},
+		//Clib::GPIO{LED3_GPIO_Port,LED3_Pin}
 	};
 
-	auto encs = std::array<BoardLib::AMT21xEnc,4>{
-		BoardLib::AMT21xEnc(&huart5,0x54,1000.0f),
-		BoardLib::AMT21xEnc(&huart3,0x54,1000.0f),
-		BoardLib::AMT21xEnc(&hlpuart1,0x54,1000.0f),
-		BoardLib::AMT21xEnc(&huart2,0x54,1000.0f),
+	auto encs = std::array<Blib::AMT21xEnc,4>{
+		Blib::AMT21xEnc(&huart5,0x54,1000.0f),
+		Blib::AMT21xEnc(&huart3,0x54,1000.0f),
+		Blib::AMT21xEnc(&hlpuart1,0x54,1000.0f),
+		Blib::AMT21xEnc(&huart2,0x54,1000.0f),
 	};
 
 
-	auto test_timer = CommonLib::InterruptionTimerHard{&htim15};
+	auto test_timer = Clib::InterruptionTimerHard{&htim15};
 
-	auto motor = BoardLib::C6x0ControllerBuilder(0,BoardLib::MotorType::C610).build();
+	auto motor = Blib::C6x0ControllerBuilder(0,Blib::RobomasMD::C610).build();
 
-	auto dob_test = CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel>{
+	auto dob_test = Clib::Math::DisturbanceObserver<Blib::MotorInverceModel>{
 		1000.0f,
-		BoardLib::MotorInverceModel(1000.0f,1.0f,1.0f),
+		Blib::MotorInverceModel(1000.0f,1.0f,1.0f),
 		5.0
 	};
 
-	auto usb_cdc = CommonLib::UsbCdcComm{&hUsbDeviceFS,
-		std::make_unique<CommonLib::RingBuffer<CommonLib::SerialData,4>>(),
-		std::make_unique<CommonLib::RingBuffer<CommonLib::SerialData,4>>()
+	auto usb_cdc = Clib::UsbCdcComm{&hUsbDeviceFS,
+		std::make_unique<Clib::RingBuffer<Clib::SerialData,4>>(),
+		std::make_unique<Clib::RingBuffer<Clib::SerialData,4>>()
 	};
 
 }
@@ -132,7 +135,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 	}else if(hfdcan == be::can_md.get_handler()){
 		be::can_md.rx_interrupt_task();
 	}
-	//be::md_state_led[2].play(BoardLib::LEDPattern::ok,false);
+	//be::md_state_led[2].play(Blib::LEDPattern::ok,false);
 }
 void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs){
 	if(hfdcan == be::can_main.get_handler()){
@@ -140,7 +143,7 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
 	}else if(hfdcan == be::can_md.get_handler()){
 		be::can_md.rx_interrupt_task();
 	}
-	//be::md_state_led[2].play(BoardLib::LEDPattern::ok,false);
+	//be::md_state_led[2].play(Blib::LEDPattern::ok,false);
 }
 
 void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t BufferIndexes){
@@ -159,9 +162,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 }
 
-//auto filter = CommonLib::Math::LowpassFilterBD<float>(5000.0f,100.0f);
-auto filter = CommonLib::Math::BiquadFilter<float>(5000.0f,200.0f,50.0f);
-//auto filter = CommonLib::Math::HighpassFilterBD<float>(5000.0f,500.0f);
+//auto filter = Clib::Math::LowpassFilterBD<float>(5000.0f,100.0f);
+auto filter = Clib::Math::BiquadFilter<float>(5000.0f,200.0f,50.0f);
+//auto filter = Clib::Math::HighpassFilterBD<float>(5000.0f,500.0f);
 
 //メイン関数
 extern "C"{
@@ -170,39 +173,39 @@ void cppmain(void){
 	HAL_Delay(500);
 	printf("start\r\n");
 	HAL_Delay(100);
-	//be::can_main.set_filter_free(0,CommonLib::CanFilterMode::ONLY_EXT);
-	be::can_main.set_filter(0,0x012,0x0FF,CommonLib::CanFilterMode::ONLY_STD);
+	//be::can_main.set_filter_free(0,Clib::CanFilterMode::ONLY_EXT);
+	be::can_main.set_filter(0,0x012,0x0FF,Clib::CanFilterMode::ONLY_STD);
 	be::can_main.start();
 	printf("can init\r\n");
 
-	printf("tim15_f:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(be::test_timer.get_handler()->Instance));
+	printf("tim15_f:%d\r\n",Clib::TimerHelper::get_timer_clock_freq(be::test_timer.get_handler()->Instance));
 
 	be::test_timer.set_task([](){
 		be::md_state_led[2].update();
 	});
 	be::test_timer.start_timer(0.001f);
 	printf("tim15_period:%f\r\n",be::test_timer.get_timer_period());
-	printf("tim1 clock:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(htim1.Instance));
-//	printf("tim2 clock:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(htim2.Instance));
-	printf("tim15 clock:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(htim15.Instance));
-	printf("tim16 clock:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(htim16.Instance));
-	printf("tim17 clock:%d\r\n",CommonLib::TimerHelper::get_timer_clock_freq(htim17.Instance));
+	printf("tim1 clock:%d\r\n",Clib::TimerHelper::get_timer_clock_freq(htim1.Instance));
+//	printf("tim2 clock:%d\r\n",Clib::TimerHelper::get_timer_clock_freq(htim2.Instance));
+	printf("tim15 clock:%d\r\n",Clib::TimerHelper::get_timer_clock_freq(htim15.Instance));
+	printf("tim16 clock:%d\r\n",Clib::TimerHelper::get_timer_clock_freq(htim16.Instance));
+	printf("tim17 clock:%d\r\n",Clib::TimerHelper::get_timer_clock_freq(htim17.Instance));
 
 //	be::LED_r.io->start();
 //	be::LED_g.io->start();
 //	be::LED_b.io->start();
 
 	while(1){
-		be::md_state_led[2].play(BoardLib::LEDPattern::test,false);
+		be::md_state_led[2].play(Blib::LEDPattern::test,false);
 
 //		//can test
-		CommonLib::Protocol::DataPacket dp;
-		CommonLib::CanFrame cf;
-		CommonLib::SerialData sd;
+		Clib::Protocol::DataPacket dp;
+		Clib::CanFrame cf;
+		Clib::SerialData sd;
 
 		dp.board_ID = 2;
 		dp.priority = 1;
-		dp.data_type = CommonLib::Protocol::DataType::RMC_DATA;
+		dp.data_type = Clib::Protocol::DataType::COMMON_ID;
 		dp.writer().write<int32_t>(0x0123'4567);
 		cf.decode_common_data_packet(dp);
 
@@ -219,7 +222,7 @@ void cppmain(void){
 			be::can_main.rx(cf);
 			printf("rx can!\r\n");
 		}
-		sd.size = CommonLib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
+		sd.size = Clib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
 
 		printf("hello:%s\r\n",sd.data);
 

@@ -8,16 +8,10 @@
 #ifndef COMMONLIB_PROTOCOL_DATA_PACKET_HPP_
 #define COMMONLIB_PROTOCOL_DATA_PACKET_HPP_
 
+#include "id_defines.hpp"
 #include "byte_reader_writer.hpp"
 
 namespace CommonLib::Protocol{
-	enum class DataType : uint8_t{
-		COMMON_DATA,
-		PCU_DATA,
-		RMC_DATA,
-		GPIOC_DATA,
-		COMMON_DATA_ENFORCE = 0xF
-	};
 
 	enum class IDBitPos{
 		PRIORITY_BIT = 24,
@@ -29,7 +23,7 @@ namespace CommonLib::Protocol{
 	struct DataPacket{
 		bool is_request = false;
 		uint8_t priority = 7;
-		DataType data_type = DataType::COMMON_DATA;
+		DataType data_type = DataType::COMMON_ID;
 		uint8_t board_ID = 0;
 		uint16_t register_ID = 0;
 
