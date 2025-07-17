@@ -20,9 +20,7 @@ namespace BoardLib{
 		static constexpr size_t enc_resolution = 14;
 		UART_HandleTypeDef* const uart;
 
-		const uint8_t enc_id = 0x36;
-
-		int32_t coef_inv;
+		const uint8_t enc_id;
 
 		uint8_t enc_val[2] = {0};
 
@@ -30,24 +28,16 @@ namespace BoardLib{
 		bool no_responce;
 
 	public:
-		AMT21xEnc(UART_HandleTypeDef* _uart,uint8_t _enc_id = 0x54,float update_freq = 1000.0f,bool is_inv = false)
+		AMT21xEnc(UART_HandleTypeDef* _uart,uint8_t _enc_id = 0x54,float update_freq = 1000.0f)
 			:ContinuableEncoder(enc_resolution,update_freq),
 			 uart(_uart),
 			 enc_id(_enc_id),
-			 coef_inv(is_inv?-1:1),
 			 new_data_available(false),
 			 no_responce(false){
 		}
 
 		bool is_ready(void){
 			return new_data_available;
-		}
-
-		bool is_inv(void){
-			return (coef_inv == 1) ? false : true;
-		}
-		void is_inv(bool is_inv){
-			coef_inv = is_inv ? 1 : -1;
 		}
 
 		bool is_dead(void)const{
@@ -73,7 +63,7 @@ namespace BoardLib{
 		//HAL_UART_RxCpltCallback内におくこと
 		void rx_interrupt_task(void){
 			uint16_t raw_angle = enc_val[1]<<8 | enc_val[0];
-			update(raw_angle*coef_inv);
+			update(raw_angle);
 			no_responce = false;
 			new_data_available = true;
 		}
