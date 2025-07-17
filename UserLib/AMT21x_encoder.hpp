@@ -34,6 +34,9 @@ namespace BoardLib{
 			 enc_id(_enc_id),
 			 new_data_available(false),
 			 no_responce(false){
+			if(uart == nullptr){
+				no_responce = true;
+			}
 		}
 
 		bool is_ready(void){
@@ -50,6 +53,9 @@ namespace BoardLib{
 		//↓
 		//rx_interrupt_task(受信完了割り込み内）
 		void request_position(void){
+			if(uart == nullptr){
+				return;
+			}
 			HAL_UART_Transmit_IT(uart, const_cast<uint8_t*>(&enc_id),1);
 			HAL_UART_Receive_IT(uart, enc_val, 2);
 

@@ -15,6 +15,7 @@
 #include "C6x0_encoder.hpp"
 #include "AMT21x_encoder.hpp"
 
+#include <optional>
 
 //TODO:MotorType == VESCの時どうするか考える
 namespace BoardLib{
@@ -123,7 +124,7 @@ private:
 	float pos_ki = 0.0f;
 	float pos_kd = 0.0f;
 
-	UART_HandleTypeDef* abs_enc_uart = nullptr;
+	UART_HandleTypeDef* abs_enc_uart = nullptr;//これやばい。一応AMT21xEncでnullptrは許容することにした
 	bool abs_enc_is_inv = false;
 
 	bool dob_enable = false;
