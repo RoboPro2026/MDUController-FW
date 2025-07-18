@@ -94,6 +94,9 @@ public:
 	void set_control_mode(MReg::ControlMode m);
 	MReg::ControlMode get_control_mode(void)const{ return mode; }
 
+	void use_abs_enc(bool _using_abs_enc){ using_abs_enc = _using_abs_enc; }
+	bool is_using_abs_enc(void)const{return using_abs_enc;}
+
 	void  set_torque(float _torqeu){torque = _torqeu;}
 	float get_torque(void) const {return torque;}
 
