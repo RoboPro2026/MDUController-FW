@@ -102,8 +102,8 @@ namespace BoardElement{
 	};
 
 	auto usb_cdc = Clib::UsbCdcComm{&hUsbDeviceFS,
-		std::make_unique<Clib::RingBuffer<Clib::SerialData,4>>(),
-		std::make_unique<Clib::RingBuffer<Clib::SerialData,4>>()
+		std::make_unique<Clib::RingBuffer<Clib::StrPack,4>>(),
+		std::make_unique<Clib::RingBuffer<Clib::StrPack,4>>()
 	};
 
 }
@@ -200,7 +200,7 @@ void cppmain(void){
 //		//can test
 		Clib::Protocol::DataPacket dp;
 		Clib::CanFrame cf;
-		Clib::SerialData sd;
+		Clib::StrPack sd;
 
 		dp.board_ID = 2;
 		dp.priority = 1;

@@ -91,7 +91,7 @@ public:
 	}
 	RobomasMD get_motor_type(void) const {return motor_type;}
 
-	void set_control_mode(MReg::ControlMode m);
+	void set_control_mode(MReg::ControlMode _mode);
 	MReg::ControlMode get_control_mode(void)const{ return mode; }
 
 	void use_abs_enc(bool _using_abs_enc){ using_abs_enc = _using_abs_enc; }
@@ -107,8 +107,51 @@ public:
 	float get_target_rad(void) const {return target_rad;}
 
 	//CANの受信割込みで呼び出し
-	float pid_operation(const CommonLib::CanFrame &frame); //return torque
+	float pid_operation(const CommonLib::CanFrame &frame);
 };
+
+void C6x0Controller::set_control_mode(MReg::ControlMode _mode){
+	if(abs_enc.is_dead()){
+		using_abs_enc = false;
+	}
+
+	target_rad = using_abs_enc ? abs_enc.get_rad(): enc.get_rad();
+	target_rad = 0.0f;
+	target_speed = 0.0f;
+	spd_pid.reset();
+	pos_pid.reset();
+
+	dob.reset();
+	mode = _mode;
+}
+
+float C6x0Controller::pid_operation(const CommonLib::CanFrame &frame){
+	enc.update_by_can_msg(frame);
+	if(abs_enc.is_dead()){
+		using_abs_enc = false;
+	}
+	float rad = using_abs_enc ? abs_enc.get_rad(): enc.get_rad();
+	float rad_spd = using_abs_enc ? abs_enc.get_rad_speed(): enc.get_rad_speed();
+
+	switch(mode){
+	case MReg::ControlMode::POSITION:
+		target_speed = pos_pid(target_rad,rad);
+	case MReg::ControlMode::SPEED:
+		torque = spd_pid(target_speed,rad_spd);
+		if(dob_enable){
+			torque -= dob.observe_disturbance(rad_spd,torque);
+		}
+	case MReg::ControlMode::OPEN_LOOP:
+		//nop
+		break;
+	default:
+		//nop
+		break;
+	}
+
+	abs_enc.request_position();
+	return torque;
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////

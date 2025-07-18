@@ -14,7 +14,7 @@
 
 namespace CommonLib{
 
-struct SerialData{
+struct	StrPack{
 	static constexpr size_t max_size = 64;
 	uint8_t data[max_size] = {0};
 	size_t size = 0;
@@ -22,10 +22,10 @@ struct SerialData{
 
 class ISerial{
 public:
-	virtual bool tx(const SerialData &data) = 0;
+	virtual bool tx(const StrPack &data) = 0;
 	virtual size_t tx_available(void) const = 0;
 
-	virtual bool rx(SerialData &data) = 0;
+	virtual bool rx(StrPack &data) = 0;
 	virtual size_t rx_available(void) const = 0;
 
 	virtual ~ISerial(){}
@@ -40,15 +40,15 @@ public:
 class UartComm : ISerial{
 private:
 	UART_HandleTypeDef* uart;
-	std::unique_ptr<IRingBuffer<SerialData>> rx_buff;
+	std::unique_ptr<IRingBuffer<StrPack>> rx_buff;
 
 	uint8_t rx_tmp_byte;
-	SerialData rx_tmp_packet;
+	StrPack rx_tmp_packet;
 
-	SerialData tx_tmp_packet;
+	StrPack tx_tmp_packet;
 	bool is_transmitting = false;
 public:
-	UartComm(UART_HandleTypeDef *_uart,std::unique_ptr<IRingBuffer<SerialData>> _rx_buff):
+	UartComm(UART_HandleTypeDef *_uart,std::unique_ptr<IRingBuffer<StrPack>> _rx_buff):
 		uart(_uart),
 		rx_buff(std::move(_rx_buff)){
 	}
@@ -58,7 +58,7 @@ public:
 	}
 
 	//tx functions
-	bool tx(const SerialData &data) override{
+	bool tx(const StrPack &data) override{
 		if(is_transmitting){
 			return false;
 		}else{
@@ -79,7 +79,7 @@ public:
 	void rx_start(void){
 		HAL_UART_Receive_IT(uart, &rx_tmp_byte, 1);
 	}
-	bool rx(SerialData &data) override{
+	bool rx(StrPack &data) override{
 		return rx_buff->pop(data);
 	}
 	size_t rx_available(void) const override{
@@ -93,7 +93,7 @@ public:
 
 			rx_buff->push(rx_tmp_packet);
 
-			rx_tmp_packet = SerialData{};
+			rx_tmp_packet = StrPack{};
 		}else{
 			rx_tmp_packet.data[rx_tmp_packet.size] = rx_tmp_byte;
 			rx_tmp_packet.size ++;

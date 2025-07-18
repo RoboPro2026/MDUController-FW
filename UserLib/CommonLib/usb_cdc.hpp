@@ -32,14 +32,14 @@ namespace CommonLib{
 class UsbCdcComm : public ISerial{
 private:
 	USBD_HandleTypeDef *usb;
-	std::unique_ptr<IRingBuffer<SerialData>> rx_buff;
-	std::unique_ptr<IRingBuffer<SerialData>> tx_buff;
+	std::unique_ptr<IRingBuffer<StrPack>> rx_buff;
+	std::unique_ptr<IRingBuffer<StrPack>> tx_buff;
 
-	SerialData tmp_buff;
+	StrPack tmp_buff;
 public:
 	UsbCdcComm(USBD_HandleTypeDef *_usb,
-			std::unique_ptr<IRingBuffer<SerialData>> _rx_buff,
-			std::unique_ptr<IRingBuffer<SerialData>> _tx_buff)
+			std::unique_ptr<IRingBuffer<StrPack>> _rx_buff,
+			std::unique_ptr<IRingBuffer<StrPack>> _tx_buff)
 	:usb(_usb),
 	 rx_buff(std::move(_rx_buff)),
 	 tx_buff(std::move(_tx_buff)){
@@ -52,7 +52,7 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////////
 	//tx functions
 	////////////////////////////////////////////////////////////////////////////////////////////
-	bool tx(const SerialData &data) override{
+	bool tx(const StrPack &data) override{
 		USBD_CDC_HandleTypeDef *cdc = (USBD_CDC_HandleTypeDef*)usb->pClassData;
 
 		if (cdc->TxState != 0){
@@ -73,7 +73,7 @@ public:
 	void tx_buff_management(void){//送信しきれなかったデータについて管理する
 		USBD_CDC_HandleTypeDef *cdc = (USBD_CDC_HandleTypeDef*)usb->pClassData;
 		if (cdc->TxState != 0){
-			SerialData tx_tmp;
+			StrPack tx_tmp;
 			if(tx_buff->pop(tx_tmp)){
 				tx(tx_tmp);
 			}
@@ -83,7 +83,7 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////////
 	//rx functions
 	////////////////////////////////////////////////////////////////////////////////////////////
-	bool rx(SerialData &data) override{
+	bool rx(StrPack &data) override{
 		return rx_buff->pop(data);
 	}
 	size_t rx_available(void) const override{
