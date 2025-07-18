@@ -81,6 +81,7 @@ public:
 
 class PIDController:public PIController{
 protected:
+	static constexpr float eps = 0.0001f; //kdによるゼロ除算回避
 	float kd;
 	float prev_error = 0.0f;
 
@@ -94,7 +95,7 @@ public:
 		PIController(_pid_freq,_kp,_ki,_k_anti_windup,_limit_min,_limit_max),
 		kd(_kd*pid_freq),
 		lpf_eta(_lpf_eta),
-		lpf(pid_freq,1/(2*M_PI*_lpf_eta*_kd)){
+		lpf(pid_freq,abs(kd)<= eps ? 1/(2*M_PI*_lpf_eta*0.1) : 1/(2*M_PI*_lpf_eta*_kd)){
 	}
 
 	float operator()(float target,float feedback) override{
@@ -116,7 +117,9 @@ public:
 
 	void set_d_gain(float _kd){
 		kd = _kd*pid_freq;
-		lpf.set_param(pid_freq,lpf_eta*_kd);
+		if(abs(kd)>= eps){
+			lpf.set_param(pid_freq,lpf_eta*_kd);
+		}
 	}
 	float get_d_gain(void)const{ return kd/pid_freq; }
 

@@ -35,8 +35,8 @@ namespace CommonLib{
 		const size_t mask;
 
 		//angle
-		uint32_t angle = 0;
-		uint32_t speed = 0;
+		int32_t angle = 0;
+		int32_t speed = 0;
 		int32_t turn_count = 0;
 
 		//speed

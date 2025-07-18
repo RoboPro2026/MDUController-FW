@@ -28,8 +28,8 @@ namespace BoardLib{
 		bool no_responce;
 
 	public:
-		AMT21xEnc(UART_HandleTypeDef* _uart,uint8_t _enc_id = 0x54,float update_freq = 1000.0f)
-			:ContinuableEncoder(enc_resolution,update_freq),
+		AMT21xEnc(UART_HandleTypeDef* _uart,uint8_t _enc_id = 0x54,float update_freq = 1000.0f,float gear_ratio = 1.0f)
+			:ContinuableEncoder(enc_resolution,update_freq,gear_ratio),
 			 uart(_uart),
 			 enc_id(_enc_id),
 			 new_data_available(false),

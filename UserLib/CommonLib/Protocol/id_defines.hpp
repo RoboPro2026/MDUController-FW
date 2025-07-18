@@ -80,7 +80,6 @@ namespace MDCRegister{
 		OPEN_LOOP,
 		SPEED,
 		POSITION,
-		ABS_POSITION,
 	};
 	enum class VescMode:size_t{
 		PWM,

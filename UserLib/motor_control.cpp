@@ -10,18 +10,16 @@
 
 namespace BoardLib{
 void C6x0Controller::set_control_mode(MReg::ControlMode _mode){
+	if(abs_enc.is_dead()){
+		using_abs_enc = false;
+	}
+	float rad = using_abs_enc ? abs_enc.get_rad(): enc.get_rad();
+
 	switch(_mode){
 	case MReg::ControlMode::POSITION:
-		target_rad = enc.get_rad();
+		target_rad = rad;
 		target_rad = 0.0f;
 		target_speed = 0.0f;
-		spd_pid.reset();
-		pos_pid.reset();
-		break;
-	case MReg::ControlMode::ABS_POSITION:
-		target_rad = abs_enc.get_rad();
-		target_speed = 0.0f;
-		torque = 0.0f;
 		spd_pid.reset();
 		pos_pid.reset();
 		break;
@@ -37,30 +35,24 @@ void C6x0Controller::set_control_mode(MReg::ControlMode _mode){
 	mode = _mode;
 }
 
-float C6x0Controller::pid_operation(const CommonLib::CanFrame &frame){ //
+float C6x0Controller::pid_operation(const CommonLib::CanFrame &frame){
 	enc.update_by_can_msg(frame);
+	if(abs_enc.is_dead()){
+		using_abs_enc = false;
+	}
+	float rad = using_abs_enc ? abs_enc.get_rad(): enc.get_rad();
+	float rad_spd = using_abs_enc ? abs_enc.get_rad_speed(): enc.get_rad_speed();
 
 	switch(mode){
 	case MReg::ControlMode::POSITION:
-		target_speed = pos_pid(target_rad,enc.get_rad());
+		target_speed = pos_pid(target_rad,rad);
 	case MReg::ControlMode::SPEED:
-		torque = spd_pid(target_speed,enc.get_rad_speed());
+		torque = spd_pid(target_speed,rad_spd);
 		if(dob_enable){
-			torque -= dob.observe_disturbance(enc.get_rad_speed(),torque);
+			torque -= dob.observe_disturbance(rad_spd,torque);
 		}
 	case MReg::ControlMode::OPEN_LOOP:
 		//nop
-		break;
-	case  MReg::ControlMode::ABS_POSITION:
-		if(abs_enc.is_dead()){
-			set_control_mode(MReg::ControlMode::OPEN_LOOP);
-			break;
-		}
-		target_speed = pos_pid(target_rad,abs_enc.get_rad());
-		torque = spd_pid(target_speed,abs_enc.get_rad_speed());
-		if(dob_enable){
-			torque -= dob.observe_disturbance(abs_enc.get_rad_speed(),torque);
-		}
 		break;
 	default:
 		//nop

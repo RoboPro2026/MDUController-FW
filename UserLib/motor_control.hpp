@@ -49,6 +49,7 @@ private:
 	RobomasMD motor_type;
 	MReg::ControlMode mode;
 	bool dob_enable;
+	bool using_abs_enc;
 
 	float torque = 0.0f;
 	float target_rad = 0.0f;
@@ -66,6 +67,7 @@ public:
 			RobomasMD _m_type,
 			MReg::ControlMode _mode,
 			bool _dob_en,
+			bool _using_abs_enc,
 			CommonLib::Math::PIDController&& _spd_pid,
 			CommonLib::Math::PIDController&& _pos_pid,
 			CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel>&& _dob,
@@ -75,6 +77,7 @@ public:
 	 motor_type(_m_type),
 	 mode(_mode),
 	 dob_enable(_dob_en),
+	 using_abs_enc(_using_abs_enc),
 	 spd_pid(std::move(_spd_pid)),
 	 pos_pid(std::move(_pos_pid)),
 	 dob(std::move(_dob)),
@@ -116,16 +119,18 @@ private:
 	MReg::ControlMode c_mode = MReg::ControlMode::OPEN_LOOP;
 	float update_freq = 1000.0f;
 
-	float spd_kp = 1.0f;
-	float spd_ki = 0.0f;
+	float spd_kp = 0.5f;
+	float spd_ki = 0.1f;
 	float spd_kd = 0.0f;
 
-	float pos_kp = 1.0f;
+	float pos_kp = 5.0f;
 	float pos_ki = 0.0f;
 	float pos_kd = 0.0f;
 
+	bool using_abs_enc = false;
 	UART_HandleTypeDef* abs_enc_uart = nullptr;//これやばい。一応AMT21xEncでnullptrは許容することにした
-	bool abs_enc_is_inv = false;
+	size_t abs_enc_id = 0x54;
+	float abs_gear_ratio = 1.0f;
 
 	bool dob_enable = false;
 	float dob_load_inertia = 1.0f;
@@ -150,9 +155,12 @@ public:
 		pos_kd = kd;
 		return *this;
 	}
-	C6x0ControllerBuilder& set_abs_enc_uart(UART_HandleTypeDef* _uart,bool is_inv = false){
+	C6x0ControllerBuilder& set_abs_enc_uart(float _using_abs_enc,UART_HandleTypeDef* _uart,size_t enc_id = 0x54,float gear_ratio = 1.0f){
+		using_abs_enc = _using_abs_enc;
 		abs_enc_uart = _uart;
-		abs_enc_is_inv = is_inv;
+		abs_enc_id = enc_id;
+		abs_gear_ratio = gear_ratio;
+
 		return *this;
 	}
 	C6x0ControllerBuilder& set_dob_param(bool _dob_enable,float _dob_load_inertia,float _dob_load_friction_coef,float _dob_lpf_cutoff_freq,float _dob_lpf_q_factor){
@@ -169,15 +177,16 @@ public:
 					motor_id,
 					m_type,
 					c_mode,
-
 					dob_enable,
+					using_abs_enc,
+
 					CommonLib::Math::PIDBuilder(update_freq)
 									.set_gain(spd_kp, spd_ki, spd_kd)
 									.set_limit(1.0f)
 									.build(),
 					CommonLib::Math::PIDBuilder(update_freq)
 									.set_gain(pos_kp, pos_ki, pos_kd)
-									.set_limit(1.0f)
+									.set_limit(314.0f)
 									.build(),
 					CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel>(
 										update_freq,
@@ -193,7 +202,7 @@ public:
 									update_freq,
 									RobomasMotorParam::get_gear_ratio(m_type)
 									),
-					BoardLib::AMT21xEnc(abs_enc_uart,0x54,abs_enc_is_inv)
+					BoardLib::AMT21xEnc(abs_enc_uart,0x54,update_freq,abs_gear_ratio)
 		};
 	}
 };
