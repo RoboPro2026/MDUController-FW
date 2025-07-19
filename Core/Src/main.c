@@ -147,17 +147,18 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
+  HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1_BOOST);
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV2;
-  RCC_OscInitStruct.PLL.PLLN = 24;
+  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV6;
+  RCC_OscInitStruct.PLL.PLLN = 85;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV6;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
@@ -203,10 +204,10 @@ static void MX_FDCAN2_Init(void)
   hfdcan2.Init.AutoRetransmission = DISABLE;
   hfdcan2.Init.TransmitPause = DISABLE;
   hfdcan2.Init.ProtocolException = DISABLE;
-  hfdcan2.Init.NominalPrescaler = 8;
+  hfdcan2.Init.NominalPrescaler = 5;
   hfdcan2.Init.NominalSyncJumpWidth = 1;
-  hfdcan2.Init.NominalTimeSeg1 = 9;
-  hfdcan2.Init.NominalTimeSeg2 = 8;
+  hfdcan2.Init.NominalTimeSeg1 = 19;
+  hfdcan2.Init.NominalTimeSeg2 = 14;
   hfdcan2.Init.DataPrescaler = 1;
   hfdcan2.Init.DataSyncJumpWidth = 1;
   hfdcan2.Init.DataTimeSeg1 = 1;
@@ -246,10 +247,10 @@ static void MX_FDCAN3_Init(void)
   hfdcan3.Init.AutoRetransmission = DISABLE;
   hfdcan3.Init.TransmitPause = DISABLE;
   hfdcan3.Init.ProtocolException = DISABLE;
-  hfdcan3.Init.NominalPrescaler = 8;
+  hfdcan3.Init.NominalPrescaler = 5;
   hfdcan3.Init.NominalSyncJumpWidth = 1;
-  hfdcan3.Init.NominalTimeSeg1 = 9;
-  hfdcan3.Init.NominalTimeSeg2 = 8;
+  hfdcan3.Init.NominalTimeSeg1 = 19;
+  hfdcan3.Init.NominalTimeSeg2 = 14;
   hfdcan3.Init.DataPrescaler = 1;
   hfdcan3.Init.DataSyncJumpWidth = 1;
   hfdcan3.Init.DataTimeSeg1 = 1;

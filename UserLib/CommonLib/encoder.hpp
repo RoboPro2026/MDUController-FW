@@ -10,6 +10,8 @@
 
 #include "main.h"
 
+#include "Math/filter.hpp"
+
 #include <numeric>
 #include <cmath>
 #include <iterator>
@@ -41,9 +43,7 @@ namespace CommonLib{
 
 		//speed
 		const int32_t coef_angle_to_speed;
-		int32_t angle_buff[16];
-		uint32_t head = 0;
-		const uint32_t head_mask = (sizeof(angle_buff)/sizeof(float) - 1);
+		Math::LowpassFilterBD<int32_t> spd_lpf;
 
 		//angle -> rad
 		float coef_angle_to_rad;
@@ -53,7 +53,8 @@ namespace CommonLib{
 			resolution_bit(_resolution_bit),
 			resolution(1u<<resolution_bit),
 			mask(resolution -1),
-			coef_angle_to_speed(update_freq/(sizeof(angle_buff)/sizeof(int32_t))),
+			coef_angle_to_speed(update_freq),
+			spd_lpf(update_freq,update_freq/10.0f),
 			coef_angle_to_rad(2*M_PI/(gear_ratio * static_cast<float>(resolution)))
 			{
 		}
@@ -84,14 +85,12 @@ namespace CommonLib{
 				--turn_count;
 			}
 
+			int32_t prev_angle = angle;
 			angle = new_angle + resolution*turn_count;
 
 			//solve speed
 			//LPFにしてもいいかも
-			uint32_t head_tmp = head;
-			head = (head + 1) & head_mask;
-			angle_buff[head_tmp] = angle;
-			speed = (angle_buff[head_tmp] - angle_buff[head])*coef_angle_to_speed;
+			speed = spd_lpf((angle - prev_angle)*coef_angle_to_speed);
 
 			return angle;
 		}

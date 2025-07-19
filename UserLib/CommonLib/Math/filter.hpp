@@ -37,7 +37,7 @@ namespace CommonLib::Math{
 		LowpassFilterBD(float sampling_freq, float cutoff_freq):k(2*M_PI*cutoff_freq/(sampling_freq + 2*M_PI*cutoff_freq)){}
 
 		T operator() (T input)override{
-			data = input*k + (1.0f-k)*data;
+			data = static_cast<T>(static_cast<float>(input)*k + (1.0f-k)*static_cast<float>(data));
 			return data;
 		}
 		T get(void)const{
@@ -63,7 +63,7 @@ namespace CommonLib::Math{
 		float b0;
 		float b1;
 		float b2;
-		float a0;
+		//float a0;
 		float a1;
 		float a2;
 	public:
@@ -119,7 +119,7 @@ namespace CommonLib::Math{
 		HighpassFilterBD(float f_sample, float f_cutoff):k(2*M_PI*f_cutoff/(f_sample + 2*M_PI*f_cutoff)){}
 
 		T operator() (T input)override{
-			data = k*(input - prev_input + data);
+			data = static_cast<T>(k*static_cast<float>(input - prev_input + data));
 			prev_input = input;
 			return data;
 		}

@@ -55,6 +55,8 @@ private:
 	float target_rad = 0.0f;
 	float target_speed = 0.0f;
 
+	bool estimate_motor_type_f = true;
+
 public:
 	CommonLib::Math::PIDController spd_pid;
 	CommonLib::Math::PIDController pos_pid;
@@ -91,11 +93,16 @@ public:
 	}
 	RobomasMD get_motor_type(void) const {return motor_type;}
 
+	void estimate_motor_type(void){estimate_motor_type_f = true;}
+
 	void set_control_mode(MReg::ControlMode _mode);
 	MReg::ControlMode get_control_mode(void)const{ return mode; }
 
 	void use_abs_enc(bool _using_abs_enc){ using_abs_enc = _using_abs_enc; }
 	bool is_using_abs_enc(void)const{return using_abs_enc;}
+
+	void use_dob(bool dob_en){dob_enable = dob_en;}
+	bool is_using_dob(void)const {return dob_enable;}
 
 	void  set_torque(float _torqeu){torque = _torqeu;}
 	float get_torque(void) const {return torque;}
@@ -107,10 +114,10 @@ public:
 	float get_target_rad(void) const {return target_rad;}
 
 	//CANの受信割込みで呼び出し
-	float pid_operation(const CommonLib::CanFrame &frame);
+	bool update(const CommonLib::CanFrame &frame);
 };
 
-void C6x0Controller::set_control_mode(MReg::ControlMode _mode){
+inline void C6x0Controller::set_control_mode(MReg::ControlMode _mode){
 	if(abs_enc.is_dead()){
 		using_abs_enc = false;
 	}
@@ -125,8 +132,23 @@ void C6x0Controller::set_control_mode(MReg::ControlMode _mode){
 	mode = _mode;
 }
 
-float C6x0Controller::pid_operation(const CommonLib::CanFrame &frame){
+inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
+	if(frame.id != 0x201 + motor_id){
+		return false;
+	}
+
+	if(estimate_motor_type_f){
+		if(frame.data[6] == 0){
+			set_motor_type(RobomasMD::C610);
+		}else{
+			set_motor_type(RobomasMD::C620);
+		}
+		estimate_motor_type_f = false;
+	}
+
 	enc.update_by_can_msg(frame);
+
+
 	if(abs_enc.is_dead()){
 		using_abs_enc = false;
 	}
@@ -150,7 +172,7 @@ float C6x0Controller::pid_operation(const CommonLib::CanFrame &frame){
 	}
 
 	abs_enc.request_position();
-	return torque;
+	return true;
 }
 
 

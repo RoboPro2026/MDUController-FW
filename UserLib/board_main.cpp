@@ -176,11 +176,23 @@ void cppmain(void){
 	be::can_main.set_filter(0,0x012,0x0FF,Clib::CanFilterMode::ONLY_STD);
 	be::can_main.start();
 	printf("can init\r\n");
+	printf("sizeof(size_t):%d\r\n",sizeof(size_t));
 
 	printf("tim15_f:%d\r\n",Clib::TimerHelper::get_timer_clock_freq(be::test_timer.get_handler()->Instance));
 
 	be::test_timer.set_task([](){
-		be::md_state_led[2].update();
+		static int cnt = 0;
+		Clib::CanFrame cf_dummy;
+		cf_dummy.id = 0x201;
+		cf_dummy.data_length = 8;
+		cf_dummy.data[0] = ++cnt;
+		cf_dummy.data[3] = ++cnt;
+
+		be::md_state_led[2].io(true);
+		be::motor.update(cf_dummy);
+		be::md_state_led[2].io(false);
+
+		//be::md_state_led[2].update();
 	});
 	be::test_timer.start_timer(0.001f);
 	printf("tim15_period:%f\r\n",be::test_timer.get_timer_period());
@@ -194,41 +206,45 @@ void cppmain(void){
 //	be::LED_g.io->start();
 //	be::LED_b.io->start();
 
+
+	be::motor.set_control_mode(MReg::ControlMode::POSITION);
+	be::motor.use_dob(true);
+
 	while(1){
 		be::md_state_led[2].play(Blib::LEDPattern::test,false);
 
 //		//can test
-		Clib::Protocol::DataPacket dp;
-		Clib::CanFrame cf;
-		Clib::StrPack sd;
-
-		dp.board_ID = 2;
-		dp.priority = 1;
-		dp.data_type = Clib::Protocol::DataType::COMMON_ID;
-		dp.writer().write<int32_t>(0x0123'4567);
-		cf.decode_common_data_packet(dp);
-
-		printf("can buff:%d\r\n",be::can_main.tx_available());
-
-		cf.is_ext_id = false;
-		cf.id = 0x012;
-		cf.data_length = 8;
-		be::can_main.tx(cf);
-		printf("can tx\r\n");
-
-		HAL_Delay(100);
-		if(be::can_main.rx_available()){
-			be::can_main.rx(cf);
-			printf("rx can!\r\n");
-		}
-		sd.size = Clib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
-
-		printf("hello:%s\r\n",sd.data);
-
-		for(auto &e: BoardElement::encs){
-			e.request_position();
-		}
-		HAL_Delay(100);
+//		Clib::Protocol::DataPacket dp;
+//		Clib::CanFrame cf;
+//		Clib::StrPack sd;
+//
+//		dp.board_ID = 2;
+//		dp.priority = 1;
+//		dp.data_type = Clib::Protocol::DataType::COMMON_ID;
+//		dp.writer().write<int32_t>(0x0123'4567);
+//		cf.decode_common_data_packet(dp);
+//
+//		printf("can buff:%d\r\n",be::can_main.tx_available());
+//
+//		cf.is_ext_id = false;
+//		cf.id = 0x012;
+//		cf.data_length = 8;
+//		be::can_main.tx(cf);
+//		printf("can tx\r\n");
+//
+//		HAL_Delay(100);
+//		if(be::can_main.rx_available()){
+//			be::can_main.rx(cf);
+//			printf("rx can!\r\n");
+//		}
+//		sd.size = Clib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
+//
+//		printf("hello:%s\r\n",sd.data);
+//
+//		for(auto &e: BoardElement::encs){
+//			e.request_position();
+//		}
+//		HAL_Delay(100);
 	}
 }
 
