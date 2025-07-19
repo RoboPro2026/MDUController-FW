@@ -30,22 +30,23 @@ class RobomasMotorParam{
 	//TODO:値の確認
 	static constexpr float torque_coef_inv[2] = {1.0f/0.18f, 1.0f/0.3f}; //トルク定数の逆数[A/(N/m)]
 	static constexpr float gear_ratio[2] = {36.0f,3591.0f/187.0f};
+	static constexpr float current_limit[2] = {10.0f,20.0f};
+	static constexpr float current_to_robomas_param_coef[2] = {1000.0f,16384.0f/20.0f};
 public:
 	static constexpr float get_gear_ratio(RobomasMD m_type){
 		return gear_ratio[static_cast<size_t>(m_type)];
 	}
-	static constexpr float torque_to_current(RobomasMD m_type, float torque){
-		return torque * torque_coef_inv[static_cast<size_t>(m_type)];
-	}
-	static constexpr float current_to_torque(RobomasMD m_type, float current){
-		return current / torque_coef_inv[static_cast<size_t>(m_type)];
+	static constexpr int16_t torque_to_robomas_value(RobomasMD m_type, float torque){
+		int index = static_cast<size_t>(m_type);
+		float current = std::clamp(torque*torque_coef_inv[index], -current_limit[index], current_limit[index]);
+		return static_cast<int16_t>(current * current_to_robomas_param_coef[index]);
 	}
 };
 
 
 class C6x0Controller{
 private:
-	const size_t motor_id;
+	const size_t motor_id; //0~3
 	RobomasMD motor_type;
 	MReg::ControlMode mode;
 	bool dob_enable;
@@ -86,13 +87,13 @@ public:
 	 enc(std::move(_enc)),
 	 abs_enc(std::move(_abs_enc)){
 	}
+	size_t get_motor_id(void)const{return motor_id;}
 
 	void set_motor_type(RobomasMD m_type){
 		motor_type = m_type;
 		enc.set_gear_ratio(RobomasMotorParam::get_gear_ratio(m_type));
 	}
 	RobomasMD get_motor_type(void) const {return motor_type;}
-
 	void estimate_motor_type(void){estimate_motor_type_f = true;}
 
 	void set_control_mode(MReg::ControlMode _mode);
@@ -133,7 +134,7 @@ inline void C6x0Controller::set_control_mode(MReg::ControlMode _mode){
 }
 
 inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
-	if(frame.id != 0x201 + motor_id){
+	if(frame.id != (0x201 + motor_id)){
 		return false;
 	}
 
@@ -147,7 +148,6 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 	}
 
 	enc.update_by_can_msg(frame);
-
 
 	if(abs_enc.is_dead()){
 		using_abs_enc = false;

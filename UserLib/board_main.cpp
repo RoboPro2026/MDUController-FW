@@ -168,17 +168,11 @@ auto filter = Clib::Math::BiquadFilter<float>(5000.0f,200.0f,50.0f);
 //メイン関数
 extern "C"{
 void cppmain(void){
-
-	HAL_Delay(500);
 	printf("start\r\n");
 	HAL_Delay(100);
 	//be::can_main.set_filter_free(0,Clib::CanFilterMode::ONLY_EXT);
 	be::can_main.set_filter(0,0x012,0x0FF,Clib::CanFilterMode::ONLY_STD);
 	be::can_main.start();
-	printf("can init\r\n");
-	printf("sizeof(size_t):%d\r\n",sizeof(size_t));
-
-	printf("tim15_f:%d\r\n",Clib::TimerHelper::get_timer_clock_freq(be::test_timer.get_handler()->Instance));
 
 	be::test_timer.set_task([](){
 		static int cnt = 0;
@@ -188,30 +182,20 @@ void cppmain(void){
 		cf_dummy.data[0] = ++cnt;
 		cf_dummy.data[3] = ++cnt;
 
-		be::md_state_led[2].io(true);
 		be::motor.update(cf_dummy);
-		be::md_state_led[2].io(false);
 
-		//be::md_state_led[2].update();
+		be::md_state_led[2].update();
 	});
 	be::test_timer.start_timer(0.001f);
-	printf("tim15_period:%f\r\n",be::test_timer.get_timer_period());
-	printf("tim1 clock:%d\r\n",Clib::TimerHelper::get_timer_clock_freq(htim1.Instance));
-//	printf("tim2 clock:%d\r\n",Clib::TimerHelper::get_timer_clock_freq(htim2.Instance));
-	printf("tim15 clock:%d\r\n",Clib::TimerHelper::get_timer_clock_freq(htim15.Instance));
-	printf("tim16 clock:%d\r\n",Clib::TimerHelper::get_timer_clock_freq(htim16.Instance));
-	printf("tim17 clock:%d\r\n",Clib::TimerHelper::get_timer_clock_freq(htim17.Instance));
-
-//	be::LED_r.io->start();
-//	be::LED_g.io->start();
-//	be::LED_b.io->start();
 
 
 	be::motor.set_control_mode(MReg::ControlMode::POSITION);
 	be::motor.use_dob(true);
+	printf("loop start\r\n");
 
 	while(1){
-		be::md_state_led[2].play(Blib::LEDPattern::test,false);
+		be::md_state_led[2].play(Blib::LEDPattern::abs_speed_mode,false);
+		HAL_Delay(100);
 
 //		//can test
 //		Clib::Protocol::DataPacket dp;

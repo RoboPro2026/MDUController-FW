@@ -36,9 +36,9 @@ public:
 			first_interrupt_flag = false;
 			return false;
 		}else{
-			tim->Instance->CR1 |= TIM_CR1_ARPE;//ARPEをセット 次回カウントリセット時にARRを適用
 			__HAL_TIM_SET_AUTORELOAD(tim,period-1);
 			__HAL_TIM_SET_COUNTER(tim,0);
+			//手動でcnt=0としているのでARPEの設定は不要
 
 			if(HAL_TIM_Base_GetState(tim) == HAL_TIM_STATE_READY){
 				HAL_TIM_Base_Start_IT(tim);
