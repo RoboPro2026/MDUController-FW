@@ -56,7 +56,7 @@ class VescDataConverter{
 			converted_value = value * duty_coef;
 			break;
 		}
-		writer.write<int32_t>(static_cast<int32_t>(converted_value));
+		writer.write<int32_t>(static_cast<int32_t>(converted_value),false);
 		return cf;
 	}
 

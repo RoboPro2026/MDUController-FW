@@ -14,48 +14,62 @@
 
 namespace CommonLib::Protocol{
 
-	class ByteWriter{
-	  uint8_t *const begin;
-	  uint8_t *const end;
-	  size_t &written_size;
+class ByteWriter{
+	uint8_t *const begin;
+	uint8_t *const end;
+	size_t &written_size;
 	public:
-	  ByteWriter(uint8_t* _begin, uint8_t* _end,size_t &_written_size): begin(_begin),end(_end),written_size(_written_size){
-		  written_size = 0;
-	  }
-	  ByteWriter(uint8_t* _bytes, size_t sz,size_t &_written_size): begin(_bytes),end(_bytes+sz),written_size(_written_size){
-		  written_size = 0;
-	  }
+	ByteWriter(uint8_t* _begin, uint8_t* _end,size_t &_written_size): begin(_begin),end(_end),written_size(_written_size){
+		written_size = 0;
+	}
+	ByteWriter(uint8_t* _bytes, size_t sz,size_t &_written_size): begin(_bytes),end(_bytes+sz),written_size(_written_size){
+		written_size = 0;
+	}
 
-	  template <class T>
-	  bool write(const T& value){
+	template <class T>
+	bool write(const T& value,bool little_endian = true){ //リトルエンディアン
 		if (written_size+begin+sizeof(T) > end){
-		  return false;
+			return false;
 		}
-		memcpy(begin+written_size, &value,sizeof(T));
-		written_size += sizeof(T);
+		if(little_endian){
+			memcpy(begin+written_size, &value,sizeof(T));
+			written_size += sizeof(T);
+		}else{
+			for(int i = sizeof(T)-1; i >= 0; i--){
+				begin[written_size] = value >> (i*8) & 0xFF;
+				written_size ++;
+			}
+		}
 		return true;
-	  }
-	};
+	}
+};
 
-	class ByteReader{
-	  const uint8_t *const begin;
-	  const uint8_t *const end;
-	  const uint8_t* iter;
-	public:
-	  ByteReader(const uint8_t* _begin, const uint8_t* _end): begin(_begin),end(_end),iter(_begin){}
-	  ByteReader(const uint8_t* _bytes, size_t sz): begin(_bytes),end(_bytes+sz),iter(_bytes){}
+class ByteReader{
+	const uint8_t *const begin;
+	const uint8_t *const end;
+	const uint8_t* iter;
+public:
+	ByteReader(const uint8_t* _begin, const uint8_t* _end): begin(_begin),end(_end),iter(_begin){}
+	ByteReader(const uint8_t* _bytes, size_t sz): begin(_bytes),end(_bytes+sz),iter(_bytes){}
 
-	  template <class T>
-	  std::optional<T> read(){
+	template <class T>
+	std::optional<T> read(bool little_endian = true){
 		T value;
 		if (iter+sizeof(T) > end){
-		  return std::nullopt;
+			return std::nullopt;
 		}
-		memcpy(&value,iter, sizeof(T));
-		iter += sizeof(T);
+		if(little_endian){
+			memcpy(&value,iter, sizeof(T));
+			iter += sizeof(T);
+		}else{
+			for(int i = sizeof(T)-1; i >= 0; i--){
+				memcpy(&value + i,iter, 1);
+				iter += sizeof(uint8_t);
+			}
+		}
 		return value;
-	  }
-	};
+	}
+};
 
 }
 
