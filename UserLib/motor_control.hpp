@@ -14,40 +14,16 @@
 #include "motor_model.hpp"
 #include "C6x0_encoder.hpp"
 #include "AMT21x_encoder.hpp"
-
+#include "motor_param.hpp"
 #include <optional>
 
 //TODO:MotorType == VESCの時どうするか考える
 namespace BoardLib{
 
-enum class RobomasMD{
-	C610,
-	C620
-};
-
-class RobomasMotorParam{
-	//ロボマスモーターのモーターパラメータ
-	//TODO:値の確認
-	static constexpr float torque_coef_inv[2] = {1.0f/0.18f, 1.0f/0.3f}; //トルク定数の逆数[A/(N/m)]
-	static constexpr float gear_ratio[2] = {36.0f,3591.0f/187.0f};
-	static constexpr float current_limit[2] = {10.0f,20.0f};
-	static constexpr float current_to_robomas_param_coef[2] = {1000.0f,16384.0f/20.0f};
-public:
-	static constexpr float get_gear_ratio(RobomasMD m_type){
-		return gear_ratio[static_cast<size_t>(m_type)];
-	}
-	static constexpr int16_t torque_to_robomas_value(RobomasMD m_type, float torque){
-		int index = static_cast<size_t>(m_type);
-		float current = std::clamp(torque*torque_coef_inv[index], -current_limit[index], current_limit[index]);
-		return static_cast<int16_t>(current * current_to_robomas_param_coef[index]);
-	}
-};
-
-
 class C6x0Controller{
 private:
 	const size_t motor_id; //0~3
-	RobomasMD motor_type;
+	MReg::RobomasMD motor_type;
 	MReg::ControlMode mode;
 	bool dob_enable;
 	bool using_abs_enc;
@@ -67,7 +43,7 @@ public:
 
 	C6x0Controller(
 			size_t _motor_id,
-			RobomasMD _m_type,
+			MReg::RobomasMD _m_type,
 			MReg::ControlMode _mode,
 			bool _dob_en,
 			bool _using_abs_enc,
@@ -89,11 +65,11 @@ public:
 	}
 	size_t get_motor_id(void)const{return motor_id;}
 
-	void set_motor_type(RobomasMD m_type){
+	void set_motor_type(MReg::RobomasMD m_type){
 		motor_type = m_type;
 		enc.set_gear_ratio(RobomasMotorParam::get_gear_ratio(m_type));
 	}
-	RobomasMD get_motor_type(void) const {return motor_type;}
+	MReg::RobomasMD get_motor_type(void) const {return motor_type;}
 	void estimate_motor_type(void){estimate_motor_type_f = true;}
 
 	void set_control_mode(MReg::ControlMode _mode);
@@ -140,9 +116,9 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 
 	if(estimate_motor_type_f){
 		if(frame.data[6] == 0){
-			set_motor_type(RobomasMD::C610);
+			set_motor_type(MReg::RobomasMD::C610);
 		}else{
-			set_motor_type(RobomasMD::C620);
+			set_motor_type(MReg::RobomasMD::C620);
 		}
 		estimate_motor_type_f = false;
 	}
@@ -183,7 +159,7 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 class C6x0ControllerBuilder{
 private:
 	size_t motor_id = 0;
-	RobomasMD m_type = RobomasMD::C610;
+	MReg::RobomasMD m_type = MReg::RobomasMD::C610;
 	MReg::ControlMode c_mode = MReg::ControlMode::OPEN_LOOP;
 	float update_freq = 1000.0f;
 
@@ -206,7 +182,7 @@ private:
 	float dob_lpf_cutoff_freq = 5.0f;
 	float dob_lpf_q_factor = 1.0f;
 public:
-	C6x0ControllerBuilder(size_t _motor_id,RobomasMD _m_type,MReg::ControlMode _c_mode = MReg::ControlMode::OPEN_LOOP,float _update_freq = 1000.0f){
+	C6x0ControllerBuilder(size_t _motor_id,MReg::RobomasMD _m_type,MReg::ControlMode _c_mode = MReg::ControlMode::OPEN_LOOP,float _update_freq = 1000.0f){
 		motor_id = _motor_id;
 		m_type = _m_type;
 		update_freq = _update_freq;

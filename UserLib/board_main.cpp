@@ -23,6 +23,7 @@
 #include "LED_pattern.hpp"
 #include "AMT21x_encoder.hpp"
 #include "motor_control.hpp"
+#include "vesc_data.hpp"
 
 #include <array>
 #include <bit>
@@ -93,13 +94,15 @@ namespace BoardElement{
 
 	auto test_timer = Clib::InterruptionTimerHard{&htim15};
 
-	auto motor = Blib::C6x0ControllerBuilder(0,Blib::RobomasMD::C610).build();
+	auto motor = Blib::C6x0ControllerBuilder(0,MReg::RobomasMD::C610).build();
 
 	auto dob_test = Clib::Math::DisturbanceObserver<Blib::MotorInverceModel>{
 		1000.0f,
 		Blib::MotorInverceModel(1000.0f,1.0f,1.0f),
 		5.0
 	};
+
+	auto vesc = Blib::VescDataConverter{0};
 
 	auto usb_cdc = Clib::UsbCdcComm{&hUsbDeviceFS,
 		std::make_unique<Clib::RingBuffer<Clib::StrPack,4>>(),

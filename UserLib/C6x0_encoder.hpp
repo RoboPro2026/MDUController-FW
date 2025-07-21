@@ -10,6 +10,7 @@
 
 #include "CommonLib/can_if.hpp"
 #include "CommonLib/encoder.hpp"
+#include "motor_param.hpp"
 
 namespace BoardLib{
 	class C6x0Enc:public CommonLib::ContinuableEncoder{

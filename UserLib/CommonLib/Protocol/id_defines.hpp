@@ -87,10 +87,9 @@ namespace MDCRegister{
 		SPEED
 	};
 
-	enum class MotorType:size_t{
-		C610 = 0x00,
-		C620 = 0x01,
-		VESC = 0x10,
+	enum class RobomasMD{
+		C610,
+		C620
 	};
 }
 
