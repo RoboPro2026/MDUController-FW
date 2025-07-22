@@ -16,7 +16,7 @@ namespace BoardLib{
 	class C6x0Enc:public CommonLib::ContinuableEncoder{
 	private:
 		static constexpr size_t enc_resolution = 13;
-		static constexpr int32_t rpm_to_rad_speed = (1<<13)/60.0f;
+		static constexpr int32_t rpm_to_angle_speed = (1<<13)/60.0f;
 
 		float current = 0.0f;
 		float temperature = 0;
@@ -30,7 +30,7 @@ namespace BoardLib{
 				return false;
 			}
 			uint16_t angle = frame.data[0]<<8 | frame.data[1];
-			int16_t angle_speed = static_cast<int16_t>(frame.data[2]<<8 | frame.data[3])*rpm_to_rad_speed;
+			int32_t angle_speed = static_cast<int16_t>(frame.data[2]<<8 | frame.data[3])*rpm_to_angle_speed;
 
 			update(angle,angle_speed);
 

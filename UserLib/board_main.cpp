@@ -73,11 +73,11 @@ namespace BoardElement{
 		Clib::FdCanRxFifo1
 	};
 
-	auto LED_r = Clib::SequencableIO<Clib::PWMHard>{Clib::PWMHard{&htim1,TIM_CHANNEL_2}};
-	auto LED_g = Clib::SequencableIO<Clib::PWMHard>{Clib::PWMHard{&htim1,TIM_CHANNEL_3}};
-	auto LED_b = Clib::SequencableIO<Clib::PWMHard>{Clib::PWMHard{&htim1,TIM_CHANNEL_4}};
+	auto LED_r = Clib::Sequencer<Clib::PWMHard>{Clib::PWMHard{&htim1,TIM_CHANNEL_2}};
+	auto LED_g = Clib::Sequencer<Clib::PWMHard>{Clib::PWMHard{&htim1,TIM_CHANNEL_3}};
+	auto LED_b = Clib::Sequencer<Clib::PWMHard>{Clib::PWMHard{&htim1,TIM_CHANNEL_4}};
 
-	auto md_state_led = std::array<Clib::SequencableIO<Clib::GPIO>,3>{
+	auto md_state_led = std::array<Clib::Sequencer<Clib::GPIO>,3>{
 		Clib::GPIO{LED0_GPIO_Port,LED0_Pin},
 		Clib::GPIO{LED1_GPIO_Port,LED1_Pin},
 		Clib::GPIO{LED2_GPIO_Port,LED2_Pin},

@@ -97,6 +97,7 @@ namespace CommonLib{
 
 		virtual int32_t update(uint32_t _angle,uint32_t _speed){
 			int32_t new_angle = _angle&mask;
+			speed = _speed;
 
 			//solve angle
 			int32_t angle_top = (new_angle >> (resolution_bit-1))&0b1;
@@ -109,8 +110,6 @@ namespace CommonLib{
 			}
 
 			angle = new_angle + resolution*turn_count;
-
-			speed = _speed;
 
 			return angle;
 		}

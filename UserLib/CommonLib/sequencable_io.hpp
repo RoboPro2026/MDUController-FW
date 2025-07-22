@@ -17,14 +17,14 @@
 
 namespace CommonLib{
 	struct Note{
-		float power;
+		float value;
 		uint32_t interval;
 	};
 	inline constexpr Note end_of_io_sequence{0.0f,0};
 }
 
 inline bool operator==(const CommonLib::Note& s1,const CommonLib::Note& s2){
-	return (s1.power == s2.power) && (s1.interval == s2.interval);
+	return (s1.value == s2.value) && (s1.interval == s2.interval);
 }
 
 namespace CommonLib{
@@ -32,13 +32,13 @@ namespace CommonLib{
 	concept Sequencable = std::derived_from<T, IPWM> || std::is_same_v<T, GPIO>;
 
 	template<Sequencable T>
-	class SequencableIO{
+	class Sequencer{
 	private:
 		const Note *playing_pattern = nullptr;
 		uint32_t pattern_count = 0;
 		uint32_t interval_count = 0;
 
-		inline void set_duty(float v){
+		inline void set_value(float v){
 			if constexpr(std::derived_from<T, IPWM>){
 				io(0.0f);
 			}else{
@@ -50,7 +50,7 @@ namespace CommonLib{
 		//TODO:templateを使わなくて良い方法を考える
 		T io;
 
-		SequencableIO(T&& _io):
+		Sequencer(T&& _io):
 			io(std::move(_io)){
 		}
 
@@ -65,7 +65,7 @@ namespace CommonLib{
 
 			interval_count = playing_pattern[pattern_count].interval;
 
-			set_duty(playing_pattern[pattern_count].power);
+			set_value(playing_pattern[pattern_count].value);
 			return true;
 		}
 
@@ -85,18 +85,18 @@ namespace CommonLib{
 				if(playing_pattern[pattern_count] == end_of_io_sequence){
 					playing_pattern = nullptr;
 
-					set_duty(0.0f);
+					set_value(0.0f);
 
 					return;
 				}
 				interval_count = playing_pattern[pattern_count].interval;
-				set_duty(playing_pattern[pattern_count].power);
+				set_value(playing_pattern[pattern_count].value);
 			}
 		}
 
 		void output_not_force(float val){ //何らかのシーケンスを実行中の場合書き込まない
 			if(not is_playing()){
-				set_duty(val);
+				set_value(val);
 			}
 		}
 	};
