@@ -60,7 +60,7 @@ public:
 			return true;
 		}
 
-		USBD_CDC_SetTxBuffer(usb, const_cast<uint8_t*>(data.data), data.size);
+		USBD_CDC_SetTxBuffer(usb, reinterpret_cast<uint8_t*>(const_cast<char*>(data.data)), data.size);
 		if(USBD_CDC_TransmitPacket(usb) != USBD_OK){
 			return false;
 		}

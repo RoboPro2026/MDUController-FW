@@ -168,13 +168,13 @@ namespace CommonLib::SLCAN{
 
 	inline StrPack can_to_slcan_packed(const CanFrame &frame){
 		StrPack pack;
-		pack.size = can_to_slcan(frame,reinterpret_cast<char*>(pack.data),pack.max_size);
+		pack.size = can_to_slcan(frame,pack.data,pack.max_size);
 		return pack;
 	}
 
 	inline CanFrame slcan_packed_to_can(const StrPack &pack){
 		CanFrame frame;
-		slcan_to_can(reinterpret_cast<const char*>(pack.data),frame);
+		slcan_to_can(pack.data,frame);
 		return frame;
 	}
 }

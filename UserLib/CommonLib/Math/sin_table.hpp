@@ -9,6 +9,7 @@
 #define SIN_TABLE_HPP_
 
 #include "q_format.hpp"
+#include "motor_math.hpp"
 
 #include <cmath>
 #include <cassert>

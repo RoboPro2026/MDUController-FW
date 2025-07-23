@@ -16,7 +16,7 @@ namespace CommonLib{
 
 struct	StrPack{
 	static constexpr size_t max_size = 64;
-	uint8_t data[max_size] = {0};
+	char data[max_size] = {0};
 	size_t size = 0;
 };
 
@@ -61,7 +61,7 @@ public:
 		if(is_transmitting){
 			return false;
 		}else{
-			HAL_UART_Transmit_IT(uart, const_cast<uint8_t*>(data.data), data.size);
+			HAL_UART_Transmit_IT(uart, reinterpret_cast<uint8_t*>(const_cast<char*>(data.data)), data.size);
 			is_transmitting = true;
 			return true;
 		}

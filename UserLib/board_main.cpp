@@ -200,38 +200,38 @@ void cppmain(void){
 		be::md_state_led[2].play(Blib::LEDPattern::abs_speed_mode,false);
 		HAL_Delay(100);
 
-//		//can test
-//		Clib::Protocol::DataPacket dp;
-//		Clib::CanFrame cf;
-//		Clib::StrPack sd;
-//
-//		dp.board_ID = 2;
-//		dp.priority = 1;
-//		dp.data_type = Clib::Protocol::DataType::COMMON_ID;
-//		dp.writer().write<int32_t>(0x0123'4567);
-//		cf.decode_common_data_packet(dp);
-//
-//		printf("can buff:%d\r\n",be::can_main.tx_available());
-//
-//		cf.is_ext_id = false;
-//		cf.id = 0x012;
-//		cf.data_length = 8;
-//		be::can_main.tx(cf);
-//		printf("can tx\r\n");
-//
-//		HAL_Delay(100);
-//		if(be::can_main.rx_available()){
-//			be::can_main.rx(cf);
-//			printf("rx can!\r\n");
-//		}
-//		sd.size = Clib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
-//
-//		printf("hello:%s\r\n",sd.data);
-//
-//		for(auto &e: BoardElement::encs){
-//			e.request_position();
-//		}
-//		HAL_Delay(100);
+		//can test
+		Clib::Protocol::DataPacket dp;
+		Clib::CanFrame cf;
+		Clib::StrPack sd;
+
+		dp.board_ID = 2;
+		dp.priority = 1;
+		dp.data_type = Clib::Protocol::DataType::COMMON_ID;
+		dp.writer().write<int32_t>(0x0123'4567);
+		cf.decode_common_data_packet(dp);
+
+		printf("can buff:%d\r\n",be::can_main.tx_available());
+
+		cf.is_ext_id = false;
+		cf.id = 0x012;
+		cf.data_length = 8;
+		be::can_main.tx(cf);
+		printf("can tx\r\n");
+
+		HAL_Delay(100);
+		if(be::can_main.rx_available()){
+			auto rx_cf = be::can_main.rx();
+			printf("rx can!\r\n");
+		}
+		sd.size = Clib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
+
+		printf("hello:%s\r\n",sd.data);
+
+		for(auto &e: BoardElement::encs){
+			e.request_position();
+		}
+		HAL_Delay(100);
 	}
 }
 
