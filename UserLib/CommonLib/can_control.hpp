@@ -56,33 +56,32 @@ namespace CommonLib{
 
 		void tx_interrupt_task(void){
 			while(HAL_CAN_GetTxMailboxesFreeLevel(can) && tx_buff->get_busy_level()){
-				CanFrame tx_frame;
-
-				if(!tx_buff->pop(tx_frame)){
+				std::optional<CanFrame> tx_frame = tx_buff->pop();
+				if(not tx_frame.has_value()){
 					break;
 				}
 
 				uint32_t mailbox_num;
 				CAN_TxHeaderTypeDef tx_header;
 
-				if(tx_frame.is_ext_id){
-					tx_header.ExtId = tx_frame.id;
+				if(tx_frame.value().is_ext_id){
+					tx_header.ExtId = tx_frame.value().id;
 					tx_header.IDE = CAN_ID_EXT;
 				}else{
-					tx_header.StdId = tx_frame.id;
+					tx_header.StdId = tx_frame.value().id;
 					tx_header.IDE = CAN_ID_STD;
 				}
 
-				if(tx_frame.is_remote){
+				if(tx_frame.value().is_remote){
 					tx_header.RTR = CAN_RTR_REMOTE;
 				}else{
 					tx_header.RTR = CAN_RTR_DATA;
 				}
 
-				tx_header.DLC = tx_frame.data_length;
+				tx_header.DLC = tx_frame.value().data_length;
 				tx_header.TransmitGlobalTime = DISABLE;
 
-				HAL_CAN_AddTxMessage(can, &tx_header, tx_frame.data, &mailbox_num);
+				HAL_CAN_AddTxMessage(can, &tx_header, tx_frame.value().data, &mailbox_num);
 			}
 		}
 
@@ -134,12 +133,8 @@ namespace CommonLib{
 
 			rx_buff->push(rx_frame);
 		}
-		bool rx(CanFrame &rx_frame)override{
-			if(rx_buff->pop(rx_frame)){
-				return true;
-			}else{
-				return false;
-			}
+		std::optional<CanFrame> rx(void)override{
+			return rx_buff->pop();
 		}
 
 		//////////////////////

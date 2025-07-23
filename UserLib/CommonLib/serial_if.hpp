@@ -25,7 +25,7 @@ public:
 	virtual bool tx(const StrPack &data) = 0;
 	virtual size_t tx_available(void) const = 0;
 
-	virtual bool rx(StrPack &data) = 0;
+	virtual std::optional<StrPack> rx(void) = 0;
 	virtual size_t rx_available(void) const = 0;
 
 	virtual ~ISerial(){}
@@ -45,7 +45,6 @@ private:
 	uint8_t rx_tmp_byte;
 	StrPack rx_tmp_packet;
 
-	StrPack tx_tmp_packet;
 	bool is_transmitting = false;
 public:
 	UartComm(UART_HandleTypeDef *_uart,std::unique_ptr<IRingBuffer<StrPack>> _rx_buff):
@@ -62,8 +61,7 @@ public:
 		if(is_transmitting){
 			return false;
 		}else{
-			tx_tmp_packet = data;
-			HAL_UART_Transmit_IT(uart, const_cast<uint8_t*>(tx_tmp_packet.data), tx_tmp_packet.size);
+			HAL_UART_Transmit_IT(uart, const_cast<uint8_t*>(data.data), data.size);
 			is_transmitting = true;
 			return true;
 		}
@@ -79,8 +77,8 @@ public:
 	void rx_start(void){
 		HAL_UART_Receive_IT(uart, &rx_tmp_byte, 1);
 	}
-	bool rx(StrPack &data) override{
-		return rx_buff->pop(data);
+	std::optional<StrPack> rx(void) override{
+		return rx_buff->pop();
 	}
 	size_t rx_available(void) const override{
 		return rx_buff->get_busy_level();

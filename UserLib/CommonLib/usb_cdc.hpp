@@ -73,9 +73,9 @@ public:
 	void tx_buff_management(void){//送信しきれなかったデータについて管理する
 		USBD_CDC_HandleTypeDef *cdc = (USBD_CDC_HandleTypeDef*)usb->pClassData;
 		if (cdc->TxState != 0){
-			StrPack tx_tmp;
-			if(tx_buff->pop(tx_tmp)){
-				tx(tx_tmp);
+			std::optional<StrPack> tx_tmp = tx_buff->pop();
+			if(tx_tmp.has_value()){
+				tx(tx_tmp.value());
 			}
 		}
 	}
@@ -83,8 +83,8 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////////
 	//rx functions
 	////////////////////////////////////////////////////////////////////////////////////////////
-	bool rx(StrPack &data) override{
-		return rx_buff->pop(data);
+	std::optional<StrPack> rx(void) override{
+		return rx_buff->pop();
 	}
 	size_t rx_available(void) const override{
 		return rx_buff->get_busy_level();

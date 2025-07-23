@@ -74,7 +74,6 @@ namespace CommonLib{
 		}
 
 		void update(void){
-
 			if(playing_pattern == nullptr){
 				return;
 			}

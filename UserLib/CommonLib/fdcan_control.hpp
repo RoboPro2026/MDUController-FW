@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <cassert>
+#include <optional>
 
 namespace CommonLib{
 
@@ -71,16 +72,15 @@ namespace CommonLib{
 
 		void tx_interrupt_task(void){
 			while(HAL_FDCAN_GetTxFifoFreeLevel(fdcan) && tx_buff->get_busy_level()){
-				CanFrame tx_frame;
-
-				if(!tx_buff->pop(tx_frame)){
+				std::optional<CanFrame> tx_frame = tx_buff->pop();
+				if(not tx_frame.has_value()){
 					break;
 				}
 
 				FDCAN_TxHeaderTypeDef tx_header;
-				tx_header.Identifier = tx_frame.id;
-				tx_header.IdType = tx_frame.is_ext_id ? FDCAN_EXTENDED_ID : FDCAN_STANDARD_ID;
-				tx_header.TxFrameType = tx_frame.is_remote ? FDCAN_REMOTE_FRAME : FDCAN_DATA_FRAME;
+				tx_header.Identifier = tx_frame.value().id;
+				tx_header.IdType = tx_frame.value().is_ext_id ? FDCAN_EXTENDED_ID : FDCAN_STANDARD_ID;
+				tx_header.TxFrameType = tx_frame.value().is_remote ? FDCAN_REMOTE_FRAME : FDCAN_DATA_FRAME;
 				tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
 				tx_header.BitRateSwitch = FDCAN_BRS_OFF;
 				tx_header.FDFormat = FDCAN_CLASSIC_CAN;
@@ -88,11 +88,11 @@ namespace CommonLib{
 				tx_header.MessageMarker = 0;
 
 #ifdef STM32G4xx_HAL_H
-				tx_header.DataLength = tx_frame.data_length;
+				tx_header.DataLength = tx_frame.value().data_length;
 #elif STM32H7xx_HAL_H
 				tx_header.DataLength = tx_frame.data_length<<16;
 #endif
-				HAL_FDCAN_AddMessageToTxFifoQ(fdcan, &tx_header, const_cast<uint8_t*>(tx_frame.data));
+				HAL_FDCAN_AddMessageToTxFifoQ(fdcan, &tx_header, const_cast<uint8_t*>(tx_frame.value().data));
 			}
 		}
 
@@ -147,16 +147,11 @@ namespace CommonLib{
 			rx_frame.data_length = rx_header.DataLength>>16;
 #endif
 
-
 			rx_buff->push(rx_frame);
 		}
 
-		bool rx(CanFrame &rx_frame)override{
-			if(rx_buff->pop(rx_frame)){
-				return true;
-			}else{
-				return false;
-			}
+		std::optional<CanFrame> rx(void)override{
+			return rx_buff->pop();
 		}
 
 		bool set_filter_free(uint32_t filter_no,CanFilterMode fmode = CanFilterMode::ONLY_STD){

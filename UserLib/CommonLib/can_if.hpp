@@ -47,7 +47,7 @@ namespace CommonLib{
 
 			dp.apply_id(id);
 
-			memcpy(dp.data, data,data_length);
+			memcpy(dp.data, data,sizeof(dp.data));
 			dp.data_length = data_length;
 
 			return dp;
@@ -58,7 +58,7 @@ namespace CommonLib{
 			is_remote = dp.is_request;
 			id = dp.generate_id();
 			data_length = dp.data_length;
-			memcpy(data, dp.data,dp.data_length);
+			memcpy(data, dp.data,sizeof(data));
 		}
 
 	};
@@ -75,7 +75,7 @@ namespace CommonLib{
 		bool virtual tx(const CanFrame &tx_frame) = 0;
 
 		uint32_t virtual rx_available(void)const = 0;
-		bool virtual rx(CanFrame &rx_frame) = 0;
+		std::optional<CanFrame> virtual rx(void) = 0;
 
 		virtual ~ICan(){}
 	};

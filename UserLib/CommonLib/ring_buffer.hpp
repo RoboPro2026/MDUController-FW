@@ -9,6 +9,7 @@
 #define RING_BUFFER_HPP_
 
 #include <cstdbool>
+#include <optional>
 
 namespace CommonLib{
 
@@ -16,7 +17,7 @@ namespace CommonLib{
 	class IRingBuffer{
 	public:
 		bool virtual push(const T& input) = 0;
-		bool virtual pop(T& output) = 0;
+		std::optional<T> virtual pop(void) = 0;
 		size_t virtual get_free_level(void)const = 0;
 		size_t virtual get_busy_level(void)const = 0;
 		void virtual reset(void) = 0;
@@ -47,15 +48,15 @@ namespace CommonLib{
 			return true;
 		}
 
-		bool pop(T &output)override{
+		std::optional<T> pop(void)override{
 			if(data_count > 0){
-				output = data_buff[tail];
+				T output = data_buff[tail];
 				tail = (tail + 1) & mask;
 				data_count --;
 				if(data_count < 0) data_count = 0;
-				return true;
+				return output;
 			}else{
-				return false;
+				return std::nullopt;
 			}
 		}
 
