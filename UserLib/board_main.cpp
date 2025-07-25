@@ -21,7 +21,6 @@
 #include "CommonLib/sequencer.hpp"
 
 #include "LED_pattern.hpp"
-#include "AMT21x_encoder.hpp"
 #include "motor_control.hpp"
 #include "vesc_data.hpp"
 #include "motor_calibration.hpp"
@@ -29,6 +28,7 @@
 #include <array>
 #include <bit>
 #include <stdio.h>
+#include "abs_encoder.hpp"
 
 
 extern FDCAN_HandleTypeDef hfdcan2;
@@ -55,6 +55,8 @@ namespace BoardElement{
 		uint8_t can_main_rx_buff[sizeof(Clib::RingBuffer<Clib::CanFrame,5>)];
 		uint8_t can_md_tx_buff[sizeof(Clib::RingBuffer<Clib::CanFrame,5>)];
 		uint8_t can_md_rx_buff[sizeof(Clib::RingBuffer<Clib::CanFrame,5>)];
+
+		uint8_t abs_enc[sizeof(BoardLib::AMT21xEnc)];
 	}
 
 	auto can_main = Clib::FdCanComm{
@@ -97,7 +99,7 @@ namespace BoardElement{
 	auto test_timer = Clib::InterruptionTimerHard{&htim15};
 
 	auto motor = Blib::C6x0ControllerBuilder(2,MReg::RobomasMD::C610)
-			.set_abs_enc_uart(false,&huart5)
+			.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc) Blib::AMT21xEnc(&huart5)),false)
 			.build();
 
 	auto vesc = Blib::VescDataConverter{0};

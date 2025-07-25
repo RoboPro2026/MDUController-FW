@@ -13,12 +13,13 @@
 #include "CommonLib/Math/disturbance_observer.hpp"
 #include "motor_model.hpp"
 #include "C6x0_encoder.hpp"
-#include "AMT21x_encoder.hpp"
 #include "motor_param.hpp"
 #include "motor_calibration.hpp"
-#include <optional>
+#include "abs_encoder.hpp"
 
-//TODO:MotorType == VESCの時どうするか考える
+#include <optional>
+#include <memory>
+
 namespace BoardLib{
 
 class C6x0Controller{
@@ -44,7 +45,7 @@ public:
 	CommonLib::Math::PIDController pos_pid;
 	CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel> dob;
 	BoardLib::C6x0Enc enc;
-	BoardLib::AMT21xEnc abs_enc;
+	std::unique_ptr<BoardLib::IABSEncoder> abs_enc;
 
 	C6x0Controller(
 			size_t _motor_id,
@@ -56,7 +57,7 @@ public:
 			CommonLib::Math::PIDController&& _pos_pid,
 			CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel>&& _dob,
 			BoardLib::C6x0Enc&& _enc,
-			BoardLib::AMT21xEnc&& _abs_enc)
+			std::unique_ptr<BoardLib::IABSEncoder> _abs_enc)
 	:motor_id(_motor_id),
 	 motor_type(_m_type),
 	 mode(_mode),
@@ -106,11 +107,11 @@ public:
 };
 
 inline void C6x0Controller::set_control_mode(MReg::ControlMode _mode){
-	if(abs_enc.is_dead()){
+	if(abs_enc->is_dead() || abs_enc == nullptr){
 		using_abs_enc = false;
 	}
 
-	target_rad = using_abs_enc ? abs_enc.get_rad(): enc.get_rad();
+	target_rad = using_abs_enc ? abs_enc->get_rad(): enc.get_rad();
 	target_rad = 0.0f;
 	target_speed = 0.0f;
 	spd_pid.reset();
@@ -147,11 +148,11 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 		return true;
 	}
 
-	if(abs_enc.is_dead()){
+	if(abs_enc->is_dead() || abs_enc == nullptr){
 		using_abs_enc = false;
 	}
-	float rad = using_abs_enc ? abs_enc.get_rad(): enc.get_rad();
-	float rad_spd = using_abs_enc ? abs_enc.get_rad_speed(): enc.get_rad_speed();
+	float rad = using_abs_enc ? abs_enc->get_rad(): enc.get_rad();
+	float rad_spd = using_abs_enc ? abs_enc->get_rad_speed(): enc.get_rad_speed();
 
 	switch(mode){
 	case MReg::ControlMode::POSITION:
@@ -169,7 +170,7 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 		break;
 	}
 
-	abs_enc.request_position();
+	abs_enc->read_start();
 	return true;
 }
 
@@ -196,9 +197,7 @@ private:
 	float pos_kd = 0.0f;
 
 	bool using_abs_enc = false;
-	UART_HandleTypeDef* abs_enc_uart = nullptr;//これやばい。一応AMT21xEncでnullptrは許容することにした
-	size_t abs_enc_id = 0x54;
-	float abs_gear_ratio = 1.0f;
+	std::unique_ptr<IABSEncoder> abs_enc = nullptr;
 
 	bool dob_enable = false;
 	float dob_load_inertia = 0.0004f; //直径100mm,300gの円盤のイナーシャ
@@ -223,11 +222,9 @@ public:
 		pos_kd = kd;
 		return *this;
 	}
-	C6x0ControllerBuilder& set_abs_enc_uart(float _using_abs_enc,UART_HandleTypeDef* _uart,size_t enc_id = 0x54,float gear_ratio = 1.0f){
+	C6x0ControllerBuilder& set_abs_enc(std::unique_ptr<IABSEncoder> _abs_enc,bool _using_abs_enc){
 		using_abs_enc = _using_abs_enc;
-		abs_enc_uart = _uart;
-		abs_enc_id = enc_id;
-		abs_gear_ratio = gear_ratio;
+		abs_enc = std::move(_abs_enc);
 
 		return *this;
 	}
@@ -267,7 +264,7 @@ public:
 										dob_lpf_q_factor
 									),
 					BoardLib::C6x0Enc(m_type,update_freq),
-					BoardLib::AMT21xEnc(abs_enc_uart,0x54,update_freq,abs_gear_ratio)
+					std::move(abs_enc)
 		};
 	}
 };
