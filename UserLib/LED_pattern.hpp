@@ -9,7 +9,7 @@
 #define LED_PATTERN_HPP_
 
 
-#include "CommonLib/sequencable_io.hpp"
+#include "CommonLib/sequencer.hpp"
 
 namespace BoardLib::LEDPattern{
 

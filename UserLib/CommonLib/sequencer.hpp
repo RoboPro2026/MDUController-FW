@@ -13,7 +13,8 @@
 
 #include "main.h"
 
-#include <concepts>
+#include <functional>
+
 
 namespace CommonLib{
 	struct Note{
@@ -28,30 +29,18 @@ inline bool operator==(const CommonLib::Note& s1,const CommonLib::Note& s2){
 }
 
 namespace CommonLib{
-	template<typename T>
-	concept Sequencable = std::derived_from<T, IPWM> || std::is_same_v<T, GPIO>;
 
-	template<Sequencable T>
 	class Sequencer{
 	private:
 		const Note *playing_pattern = nullptr;
 		uint32_t pattern_count = 0;
 		uint32_t interval_count = 0;
 
-		inline void set_value(float v){
-			if constexpr(std::derived_from<T, IPWM>){
-				io(0.0f);
-			}else{
-				io(v>0.0f);
-			}
-		}
+		std::function<void(float)> f;
 
 	public:
-		//TODO:templateを使わなくて良い方法を考える
-		T io;
 
-		Sequencer(T&& _io):
-			io(std::move(_io)){
+		Sequencer(std::function<void(float)> _f):f(_f){
 		}
 
 		//pattern:実行するシーケンス，force:すでに別のシーケンスが走っている場合に上書きして実行するか
@@ -65,7 +54,7 @@ namespace CommonLib{
 
 			interval_count = playing_pattern[pattern_count].interval;
 
-			set_value(playing_pattern[pattern_count].value);
+			f(playing_pattern[pattern_count].value);
 			return true;
 		}
 
@@ -84,18 +73,18 @@ namespace CommonLib{
 				if(playing_pattern[pattern_count] == end_of_io_sequence){
 					playing_pattern = nullptr;
 
-					set_value(0.0f);
+					f(0.0f);
 
 					return;
 				}
 				interval_count = playing_pattern[pattern_count].interval;
-				set_value(playing_pattern[pattern_count].value);
+				f(playing_pattern[pattern_count].value);
 			}
 		}
 
 		void output_not_force(float val){ //何らかのシーケンスを実行中の場合書き込まない
 			if(not is_playing()){
-				set_value(val);
+				f(val);
 			}
 		}
 	};

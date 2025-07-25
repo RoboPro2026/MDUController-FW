@@ -18,11 +18,18 @@ namespace BoardLib{
 		static constexpr size_t enc_resolution = 13;
 		static constexpr int32_t rpm_to_angle_speed = (1<<13)/60.0f;
 
-		float current = 0.0f;
-		float temperature = 0;
+		MReg::RobomasMD m_type;
+		int16_t current = 0;
+		int8_t temperature = 0;
 	public:
-		C6x0Enc(float feedbuck_freq = 1000.0f,float gear_ratio = 36.0f)
-		:CommonLib::ContinuableEncoder(13,feedbuck_freq,gear_ratio){
+		C6x0Enc(MReg::RobomasMD _m_type,float update_freq = 1000.0f)
+		:CommonLib::ContinuableEncoder(13,update_freq,RobomasMotorParam::get_gear_ratio(_m_type)),
+		 m_type(_m_type){
+		}
+
+		void set_motor_type(MReg::RobomasMD _m_type){
+			CommonLib::ContinuableEncoder::set_gear_ratio(RobomasMotorParam::get_gear_ratio(_m_type));
+			m_type = _m_type;
 		}
 
 		bool update_by_can_msg(CommonLib::CanFrame frame){
@@ -34,16 +41,16 @@ namespace BoardLib{
 
 			update(angle,angle_speed);
 
-			current = static_cast<float>(frame.data[4]<<8 | frame.data[5]);
-			temperature = static_cast<float>(frame.data[6]);
+			current = static_cast<int16_t>(frame.data[4]<<8 | frame.data[5]);
+			temperature = frame.data[6];
 			return true;
 		}
 
-		float get_temperature(void)const{
+		int8_t get_temperature(void)const{
 			return temperature;
 		}
-		float get_current(void)const{
-			return current;
+		float get_torque(void)const{
+			return RobomasMotorParam::robomas_value_to_torque(m_type, current);
 		}
 	};
 }

@@ -29,6 +29,11 @@ public:
 		float current = std::clamp(torque*torque_coef_inv[index], -current_limit[index], current_limit[index]);
 		return static_cast<int16_t>(current * current_to_robomas_param_coef[index]);
 	}
+
+	static constexpr float robomas_value_to_torque(MReg::RobomasMD m_type, int16_t value){
+		int index = static_cast<size_t>(m_type);
+		return static_cast<float>(value) / current_to_robomas_param_coef[index]/torque_coef_inv[index];
+	}
 };
 
 

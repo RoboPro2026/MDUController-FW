@@ -67,7 +67,7 @@ public:
 
 	void set_motor_type(MReg::RobomasMD m_type){
 		motor_type = m_type;
-		enc.set_gear_ratio(RobomasMotorParam::get_gear_ratio(m_type));
+		enc.set_motor_type(m_type);
 	}
 	MReg::RobomasMD get_motor_type(void) const {return motor_type;}
 	void estimate_motor_type(void){estimate_motor_type_f = true;}
@@ -164,7 +164,7 @@ private:
 	float update_freq = 1000.0f;
 
 	float spd_kp = 0.5f;
-	float spd_ki = 0.1f;
+	float spd_ki = 0.0f;//0.1f;
 	float spd_kd = 0.0f;
 
 	float pos_kp = 5.0f;
@@ -177,8 +177,8 @@ private:
 	float abs_gear_ratio = 1.0f;
 
 	bool dob_enable = false;
-	float dob_load_inertia = 1.0f;
-	float dob_load_friction_coef = 0.0f;
+	float dob_load_inertia = 0.0004f; //直径100mm,300gの円盤のイナーシャ
+	float dob_load_friction_coef = 0.0005f;
 	float dob_lpf_cutoff_freq = 5.0f;
 	float dob_lpf_q_factor = 1.0f;
 public:
@@ -242,10 +242,7 @@ public:
 										dob_lpf_cutoff_freq,
 										dob_lpf_q_factor
 									),
-					BoardLib::C6x0Enc(
-									update_freq,
-									RobomasMotorParam::get_gear_ratio(m_type)
-									),
+					BoardLib::C6x0Enc(m_type,update_freq),
 					BoardLib::AMT21xEnc(abs_enc_uart,0x54,update_freq,abs_gear_ratio)
 		};
 	}

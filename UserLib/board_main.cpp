@@ -14,7 +14,6 @@
 
 #include "CommonLib/fdcan_control.hpp"
 #include "CommonLib/gpio.hpp"
-#include "CommonLib/sequencable_io.hpp"
 #include "CommonLib/slcan.hpp"
 #include "CommonLib/serial_if.hpp"
 #include "CommonLib/timer_interruption_control.hpp"
@@ -28,6 +27,7 @@
 #include <array>
 #include <bit>
 #include <stdio.h>
+#include "CommonLib/sequencer.hpp"
 
 extern FDCAN_HandleTypeDef hfdcan2;
 extern FDCAN_HandleTypeDef hfdcan3;
@@ -73,15 +73,23 @@ namespace BoardElement{
 		Clib::FdCanRxFifo1
 	};
 
-	auto LED_r = Clib::Sequencer<Clib::PWMHard>{Clib::PWMHard{&htim1,TIM_CHANNEL_2}};
-	auto LED_g = Clib::Sequencer<Clib::PWMHard>{Clib::PWMHard{&htim1,TIM_CHANNEL_3}};
-	auto LED_b = Clib::Sequencer<Clib::PWMHard>{Clib::PWMHard{&htim1,TIM_CHANNEL_4}};
+	auto led_r = Clib::PWMHard{&htim1,TIM_CHANNEL_2};
+	auto led_g = Clib::PWMHard{&htim1,TIM_CHANNEL_3};
+	auto led_b = Clib::PWMHard{&htim1,TIM_CHANNEL_4};
+	auto led0 = Clib::GPIO{LED0_GPIO_Port,LED0_Pin};
+	auto led1 = Clib::GPIO{LED1_GPIO_Port,LED1_Pin};
+	auto led2 = Clib::GPIO{LED2_GPIO_Port,LED2_Pin};
+	auto led3 = Clib::GPIO{LED3_GPIO_Port,LED3_Pin};
 
-	auto md_state_led = std::array<Clib::Sequencer<Clib::GPIO>,3>{
-		Clib::GPIO{LED0_GPIO_Port,LED0_Pin},
-		Clib::GPIO{LED1_GPIO_Port,LED1_Pin},
-		Clib::GPIO{LED2_GPIO_Port,LED2_Pin},
-		//Clib::GPIO{LED3_GPIO_Port,LED3_Pin}
+	auto led_r_seqencer = Clib::Sequencer{[](float v){led_r(v);}};
+	auto led_g_seqencer = Clib::Sequencer{[](float v){led_g(v);}};
+	auto led_b_seqencer = Clib::Sequencer{[](float v){led_b(v);}};
+
+	auto md_state_led = std::array<Clib::Sequencer,4>{
+		Clib::Sequencer([](float v){led0(v);}),
+		Clib::Sequencer([](float v){led1(v);}),
+		Clib::Sequencer([](float v){led2(v);}),
+		Clib::Sequencer([](float v){led3(v);})
 	};
 
 	auto encs = std::array<Blib::AMT21xEnc,4>{
@@ -110,6 +118,24 @@ namespace BoardElement{
 	};
 
 }
+
+constexpr float D = 0.01;
+constexpr float J = 0.002;
+auto sec_tim = Clib::InterruptionTimerHard{&htim17};
+auto motor_model = CommonLib::Math::LowpassFilterBD<float>{1000.0f,::D/(2.*M_PI*::J)};
+auto pi = CommonLib::Math::PIBuilder(1000.0f).set_gain(0.5, 0.0).set_limit(5.0f).build();
+auto motor_inv_model = BoardLib::MotorInverceModel{1000.0f,::J,0};
+auto dob = CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel>{
+	1000.0f,
+	BoardLib::MotorInverceModel{1000.0f,::J,::D},
+	10.0f,
+};
+float target = 1.0f;
+float torque = 0.0f;
+float speed = 0.0f;
+float torque_obs = 0.0f;
+float dist_obs = 0.0f;
+float dist = 0.0f;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //割り込み関数たち
@@ -161,6 +187,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim == be::test_timer.get_handler()){
 		be::test_timer.interrupt_task();
+	}else if(htim == sec_tim.get_handler()){
+		sec_tim.interrupt_task();
 	}
 }
 
@@ -171,67 +199,72 @@ auto filter = Clib::Math::BiquadFilter<float>(5000.0f,200.0f,50.0f);
 //メイン関数
 extern "C"{
 void cppmain(void){
-	printf("start\r\n");
 	HAL_Delay(100);
 	//be::can_main.set_filter_free(0,Clib::CanFilterMode::ONLY_EXT);
 	be::can_main.set_filter(0,0x012,0x0FF,Clib::CanFilterMode::ONLY_STD);
 	be::can_main.start();
 
 	be::test_timer.set_task([](){
-		static int cnt = 0;
-		Clib::CanFrame cf_dummy;
-		cf_dummy.id = 0x201;
-		cf_dummy.data_length = 8;
-		cf_dummy.data[0] = ++cnt;
-		cf_dummy.data[3] = ++cnt;
+		::speed = ::motor_model(::torque + ::dist)*(1.0/::D);
+		::torque = ::pi(::target, ::speed);
+		::torque_obs = motor_inv_model(::speed);
+		::dist_obs = ::dob.observe_disturbance(::speed,::torque);
+		::torque -= ::dist_obs;
 
-		be::motor.update(cf_dummy);
 
 		be::md_state_led[2].update();
 	});
+
+	sec_tim.set_task([](){
+		target *= -1.0f;
+	});
 	be::test_timer.start_timer(0.001f);
+	sec_tim.start_timer(1.0f);
 
-
-	be::motor.set_control_mode(MReg::ControlMode::POSITION);
 	be::motor.use_dob(true);
-	printf("loop start\r\n");
+	be::motor.set_control_mode(MReg::ControlMode::POSITION);
 
+	int cnt = 0;
 	while(1){
+		::dist = sin((++cnt)*0.005);
+		printf("%4.3f,%4.3f,%4.3f,%4.3f,%4.3f,%4.3f\r\n",::target,::speed,::torque,torque_obs,::dist,::dist_obs);
+		HAL_Delay(1);
+
 		be::md_state_led[2].play(Blib::LEDPattern::abs_speed_mode,false);
-		HAL_Delay(100);
-
-		//can test
-		Clib::Protocol::DataPacket dp;
-		Clib::CanFrame cf;
-		Clib::StrPack sd;
-
-		dp.board_ID = 2;
-		dp.priority = 1;
-		dp.data_type = Clib::Protocol::DataType::COMMON_ID;
-		dp.writer().write<int32_t>(0x0123'4567);
-		cf.decode_common_data_packet(dp);
-
-		printf("can buff:%d\r\n",be::can_main.tx_available());
-
-		cf.is_ext_id = false;
-		cf.id = 0x012;
-		cf.data_length = 8;
-		be::can_main.tx(cf);
-		printf("can tx\r\n");
-
-		HAL_Delay(100);
-		if(be::can_main.rx_available()){
-			auto rx_cf = be::can_main.rx();
-			printf("rx can!\r\n");
-		}
-		sd.size = Clib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
-
-		printf("hello:%s\r\n",sd.data);
-
-		for(auto &e: BoardElement::encs){
-			e.request_position();
-		}
-		HAL_Delay(100);
+//		HAL_Delay(100);
+//
+//		//can test
+//		Clib::Protocol::DataPacket dp;
+//		Clib::CanFrame cf;
+//		Clib::StrPack sd;
+//
+//		dp.board_ID = 2;
+//		dp.priority = 1;
+//		dp.data_type = Clib::Protocol::DataType::COMMON_ID;
+//		dp.writer().write<int32_t>(0x0123'4567);
+//		cf.decode_common_data_packet(dp);
+//
+//		printf("can buff:%d\r\n",be::can_main.tx_available());
+//
+//		cf.is_ext_id = false;
+//		cf.id = 0x012;
+//		cf.data_length = 8;
+//		be::can_main.tx(cf);
+//		printf("can tx\r\n");
+//
+//		HAL_Delay(100);
+//		if(be::can_main.rx_available()){
+//			auto rx_cf = be::can_main.rx();
+//			printf("rx can!\r\n");
+//		}
+//		sd.size = Clib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
+//
+//		printf("hello:%s\r\n",sd.data);
+//
+//		for(auto &e: BoardElement::encs){
+//			e.request_position();
+//		}
+//		HAL_Delay(100);
 	}
 }
 
