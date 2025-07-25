@@ -15,6 +15,7 @@
 #include "C6x0_encoder.hpp"
 #include "AMT21x_encoder.hpp"
 #include "motor_param.hpp"
+#include "motor_calibration.hpp"
 #include <optional>
 
 //TODO:MotorType == VESCの時どうするか考える
@@ -32,8 +33,12 @@ private:
 	float target_rad = 0.0f;
 	float target_speed = 0.0f;
 
+	float rad_origin = 0.0f;
+
 	bool estimate_motor_type_f = true;
 
+	bool calibration_request = false;
+	CalibrationManager calib_mng;
 public:
 	CommonLib::Math::PIDController spd_pid;
 	CommonLib::Math::PIDController pos_pid;
@@ -81,14 +86,20 @@ public:
 	void use_dob(bool dob_en){dob_enable = dob_en;}
 	bool is_using_dob(void)const {return dob_enable;}
 
-	void  set_torque(float _torqeu){torque = _torqeu;}
+	void  set_torque(float _torque){torque = _torque;}
 	float get_torque(void) const {return torque;}
 
 	void set_target_speed_rad(float _target_speed){ target_speed = _target_speed;}
 	float get_target_speed_rad(void) const {return target_speed;}
 
-	void set_target_rad(float _target_rad){ target_rad = _target_rad;}
-	float get_target_rad(void) const {return target_rad;}
+	void set_target_rad(float _target_rad){ target_rad = _target_rad + rad_origin;}
+	float get_target_rad(void) const {return target_rad - rad_origin;}
+
+	void overwrite_rad(float rad){rad_origin = enc.get_rad() - rad;}
+	float get_overwrited_rad(void)const{return enc.get_rad() - rad_origin;}
+
+	void start_calibration(void){calibration_request = true;}
+	bool is_calibrating(void)const{return calibration_request;}
 
 	//CANの受信割込みで呼び出し
 	bool update(const CommonLib::CanFrame &frame);
@@ -125,6 +136,17 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 
 	enc.update_by_can_msg(frame);
 
+	if(calibration_request){
+		auto [_torque,_continue] = calib_mng.calibration(enc.get_rad_speed(),enc.get_torque());
+		calibration_request = _continue;
+		torque = _torque;
+		if(calibration_request){
+			dob.inverse_model.set_inertia(calib_mng.get_inertia());
+			dob.inverse_model.set_friction_coef(calib_mng.get_friction_coef());
+		}
+		return true;
+	}
+
 	if(abs_enc.is_dead()){
 		using_abs_enc = false;
 	}
@@ -150,6 +172,8 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 	abs_enc.request_position();
 	return true;
 }
+
+
 
 
 ///////////////////////////////////////////////////////////////////////////////

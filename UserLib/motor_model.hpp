@@ -10,6 +10,8 @@
 
 
 #include "CommonLib/Math/filter.hpp"
+#include "CommonLib/can_if.hpp"
+#include "CommonLib/Protocol/id_defines.hpp"
 
 namespace BoardLib{
 
@@ -69,6 +71,18 @@ public:
 		prev_output = 0.0f;
 	}
 };
+
+
+//気が向いたら作
+class VirtualRobomasMotor{
+private:
+	MReg::RobomasMD m_type;
+
+public:
+	VirtualRobomasMotor(MReg::RobomasMD _m_type):m_type(_m_type){}
+
+};
+
 }
 
 

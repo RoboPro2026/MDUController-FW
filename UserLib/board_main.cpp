@@ -18,16 +18,18 @@
 #include "CommonLib/serial_if.hpp"
 #include "CommonLib/timer_interruption_control.hpp"
 #include "CommonLib/usb_cdc.hpp"
+#include "CommonLib/sequencer.hpp"
 
 #include "LED_pattern.hpp"
 #include "AMT21x_encoder.hpp"
 #include "motor_control.hpp"
 #include "vesc_data.hpp"
+#include "motor_calibration.hpp"
 
 #include <array>
 #include <bit>
 #include <stdio.h>
-#include "CommonLib/sequencer.hpp"
+
 
 extern FDCAN_HandleTypeDef hfdcan2;
 extern FDCAN_HandleTypeDef hfdcan3;
@@ -86,10 +88,10 @@ namespace BoardElement{
 	auto led_b_seqencer = Clib::Sequencer{[](float v){led_b(v);}};
 
 	auto md_state_led = std::array<Clib::Sequencer,4>{
-		Clib::Sequencer([](float v){led0(v);}),
-		Clib::Sequencer([](float v){led1(v);}),
-		Clib::Sequencer([](float v){led2(v);}),
-		Clib::Sequencer([](float v){led3(v);})
+		Clib::Sequencer([](float v){led0(v>0.0f);}),
+		Clib::Sequencer([](float v){led1(v>0.0f);}),
+		Clib::Sequencer([](float v){led2(v>0.0f);}),
+		Clib::Sequencer([](float v){led3(v>0.0f);})
 	};
 
 	auto encs = std::array<Blib::AMT21xEnc,4>{
@@ -119,8 +121,8 @@ namespace BoardElement{
 
 }
 
-constexpr float D = 0.01;
-constexpr float J = 0.002;
+constexpr float J = 0.0004;
+constexpr float D = 0.001;
 auto sec_tim = Clib::InterruptionTimerHard{&htim17};
 auto motor_model = CommonLib::Math::LowpassFilterBD<float>{1000.0f,::D/(2.*M_PI*::J)};
 auto pi = CommonLib::Math::PIBuilder(1000.0f).set_gain(0.5, 0.0).set_limit(5.0f).build();
@@ -136,6 +138,9 @@ float speed = 0.0f;
 float torque_obs = 0.0f;
 float dist_obs = 0.0f;
 float dist = 0.0f;
+auto calib_mng = BoardLib::CalibrationManager();
+bool calib_req = true;
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //割り込み関数たち
@@ -205,12 +210,18 @@ void cppmain(void){
 	be::can_main.start();
 
 	be::test_timer.set_task([](){
-		::speed = ::motor_model(::torque + ::dist)*(1.0/::D);
-		::torque = ::pi(::target, ::speed);
-		::torque_obs = motor_inv_model(::speed);
-		::dist_obs = ::dob.observe_disturbance(::speed,::torque);
-		::torque -= ::dist_obs;
+//		::speed = ::motor_model(::torque + ::dist)*(1.0/::D);
+//		::torque = ::pi(::target, ::speed);
+//		::torque_obs = motor_inv_model(::speed);
+//		::dist_obs = ::dob.observe_disturbance(::speed,::torque);
+//		::torque -= ::dist_obs;
 
+		if(::calib_req){
+			auto [trq,_calib_continue] = calib_mng.calibration(::speed,::torque);
+			::calib_req = _calib_continue;
+			::torque = trq;
+		}
+		::speed = ::motor_model(::torque + ::dist)*(1.0/::D);
 
 		be::md_state_led[2].update();
 	});
@@ -225,10 +236,19 @@ void cppmain(void){
 	be::motor.set_control_mode(MReg::ControlMode::POSITION);
 
 	int cnt = 0;
+	bool tmp = ::calib_req;
 	while(1){
-		::dist = sin((++cnt)*0.005);
-		printf("%4.3f,%4.3f,%4.3f,%4.3f,%4.3f,%4.3f\r\n",::target,::speed,::torque,torque_obs,::dist,::dist_obs);
-		HAL_Delay(1);
+//		::dist = sin((++cnt)*0.005);
+//		printf("%4.3f,%4.3f,%4.3f,%4.3f,%4.3f,%4.3f\r\n",::target,::speed,::torque,torque_obs,::dist,::dist_obs);
+//		HAL_Delay(1);
+
+		if(::calib_req){
+			printf("%4.3f,%4.3f\r\n",::speed,::torque);
+		}else{
+			printf("%f,%f\r\n",calib_mng.get_inertia(),calib_mng.get_friction_coef());
+		}
+
+		tmp = ::calib_req;
 
 		be::md_state_led[2].play(Blib::LEDPattern::abs_speed_mode,false);
 //		HAL_Delay(100);
