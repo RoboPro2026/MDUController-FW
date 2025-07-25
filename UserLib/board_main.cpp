@@ -94,26 +94,11 @@ namespace BoardElement{
 		Clib::Sequencer([](float v){led3(v>0.0f);})
 	};
 
-//	auto encs = std::array<Blib::AMT21xEnc,4>{
-//		Blib::AMT21xEnc(&huart5,0x54,1000.0f),
-//		Blib::AMT21xEnc(&huart3,0x54,1000.0f),
-//		Blib::AMT21xEnc(&hlpuart1,0x54,1000.0f),
-//		Blib::AMT21xEnc(&huart2,0x54,1000.0f),
-//	};
-
-
 	auto test_timer = Clib::InterruptionTimerHard{&htim15};
 
-//	auto motor = Blib::C6x0ControllerBuilder(0,MReg::RobomasMD::C610).build();
 	auto motor = Blib::C6x0ControllerBuilder(2,MReg::RobomasMD::C610)
 			.set_abs_enc_uart(false,&huart5)
 			.build();
-
-	auto dob_test = Clib::Math::DisturbanceObserver<Blib::MotorInverceModel>{
-		1000.0f,
-		Blib::MotorInverceModel(1000.0f,1.0f,1.0f),
-		5.0
-	};
 
 	auto vesc = Blib::VescDataConverter{0};
 
@@ -124,47 +109,77 @@ namespace BoardElement{
 
 }
 
-constexpr float J = 0.0004;
-constexpr float D = 0.001;
-auto sec_tim = Clib::InterruptionTimerHard{&htim17};
-auto motor_model = CommonLib::Math::LowpassFilterBD<float>{1000.0f,::D/(2.*M_PI*::J)};
-auto pi = CommonLib::Math::PIBuilder(1000.0f).set_gain(0.5, 0.0).set_limit(5.0f).build();
-auto motor_inv_model = BoardLib::MotorInverceModel{1000.0f,::J,0};
-auto dob = CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel>{
-	1000.0f,
-	BoardLib::MotorInverceModel{1000.0f,::J,::D},
-	10.0f,
-};
-float target = 1.0f;
-float torque = 0.0f;
-float speed = 0.0f;
-float torque_obs = 0.0f;
-float dist_obs = 0.0f;
-float dist = 0.0f;
-auto calib_mng = BoardLib::CalibrationManager();
-bool calib_req = true;
+namespace Test{
+	auto sec_tim = Clib::InterruptionTimerHard{&htim17};
 
-int16_t rm_val = 0;
-auto vrm = BoardLib::VirtualRobomasMotor(1000.0f,2,MReg::RobomasMD::C610,0.0004,0.001);
+	float target = 1.0f;
+	int16_t rm_val = 0;
+	auto vrm = BoardLib::VirtualRobomasMotor(1000.0f,2,MReg::RobomasMD::C610,0.0004,0.001);
+}
 
+namespace be = BoardElement;
+
+//メイン関数
+extern "C"{
+void cppmain(void){
+	HAL_Delay(100);
+	//be::can_main.set_filter_free(0,Clib::CanFilterMode::ONLY_EXT);
+	be::can_main.set_filter(0,0x012,0x0FF,Clib::CanFilterMode::ONLY_STD);
+	be::can_main.start();
+
+	be::test_timer.set_task([](){
+		Test::rm_val = Blib::RobomasMotorParam::torque_to_robomas_value(be::motor.get_motor_type(), be::motor.get_torque());
+		auto cf = Test::vrm(Test::rm_val);
+		be::motor.update(cf);
+		be::md_state_led[2].update();
+	});
+
+	Test::sec_tim.set_task([](){
+		Test::target *= -1.0f;
+	});
+	be::test_timer.start_timer(0.001f);
+	Test::sec_tim.start_timer(1.0f);
+
+	be::motor.start_calibration();
+	while(be::motor.is_calibrating()){
+		be::md_state_led[2].play(Blib::LEDPattern::test,false);
+		HAL_Delay(10);
+	}
+	printf("%f,%f\r\n",be::motor.dob.inverse_model.get_inertia(),be::motor.dob.inverse_model.get_friction_coef());
+
+	be::motor.overwrite_rad(0.0f);
+	be::motor.set_control_mode(MReg::ControlMode::POSITION);
+	be::motor.use_dob(true);
+	while(1){
+		be::md_state_led[2].play(Blib::LEDPattern::abs_speed_mode,false);
+		be::motor.set_target_rad(Test::target);
+
+		printf("%4.3f,%4.3f,%4.3f\r\n",be::motor.get_overwrited_rad(),be::motor.enc.get_rad_speed(),be::motor.enc.get_torque());
+
+		HAL_Delay(1);
+	}
+}
+
+int _write(int file, char *ptr, int len) {
+	HAL_UART_Transmit(&huart2, (uint8_t*) ptr, len,100);
+	return len;
+}
+
+void usb_cdc_rx_callback(const uint8_t *input,size_t size){
+	be::usb_cdc.rx_interrupt_task(input, size);
+}
+
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //割り込み関数たち
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-namespace be = BoardElement;
+
 
 //uart(rs485
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-//	if(huart == be::encs[0].get_handler()){
-//		be::encs[0].rx_interrupt_task();
-//	}else if(huart == be::encs[1].get_handler()){
-//		be::encs[1].rx_interrupt_task();
-//	}else if(huart == be::encs[2].get_handler()){
-//		be::encs[2].rx_interrupt_task();
-//	}else if(huart == be::encs[3].get_handler()){
-//		be::encs[3].rx_interrupt_task();
-//	}
+
 }
 
 //can
@@ -198,132 +213,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim == be::test_timer.get_handler()){
 		be::test_timer.interrupt_task();
-	}else if(htim == sec_tim.get_handler()){
-		sec_tim.interrupt_task();
+	}else if(htim == Test::sec_tim.get_handler()){
+		Test::sec_tim.interrupt_task();
 	}
-}
-
-//auto filter = Clib::Math::LowpassFilterBD<float>(5000.0f,100.0f);
-auto filter = Clib::Math::BiquadFilter<float>(5000.0f,200.0f,50.0f);
-//auto filter = Clib::Math::HighpassFilterBD<float>(5000.0f,500.0f);
-
-//メイン関数
-extern "C"{
-void cppmain(void){
-	HAL_Delay(100);
-	//be::can_main.set_filter_free(0,Clib::CanFilterMode::ONLY_EXT);
-	be::can_main.set_filter(0,0x012,0x0FF,Clib::CanFilterMode::ONLY_STD);
-	be::can_main.start();
-
-	be::test_timer.set_task([](){
-//		::speed = ::motor_model(::torque + ::dist)*(1.0/::D);
-//		::torque = ::pi(::target, ::speed);
-//		::torque_obs = motor_inv_model(::speed);
-//		::dist_obs = ::dob.observe_disturbance(::speed,::torque);
-//		::torque -= ::dist_obs;
-
-		rm_val = Blib::RobomasMotorParam::torque_to_robomas_value(be::motor.get_motor_type(), be::motor.get_torque());
-		auto cf = vrm(rm_val);
-		if(be::motor.update(cf)){
-			be::md_state_led[2].update();
-		}
-
-//		if(::calib_req){
-//			auto [trq,_calib_continue] = calib_mng.calibration(::speed,::torque);
-//			::calib_req = _calib_continue;
-//			::torque = trq;
-//		}
-//		::speed = ::motor_model(::torque + ::dist)*(1.0/::D);
-
-
-	});
-
-	sec_tim.set_task([](){
-		::target *= -1.0f;
-	});
-	be::test_timer.start_timer(0.001f);
-	sec_tim.start_timer(1.0f);
-
-	//be::motor.use_dob(true);
-	be::motor.set_control_mode(MReg::ControlMode::POSITION);
-	//be::motor.set_torque(0.1);
-	be::motor.start_calibration();
-
-	int cnt = 0;
-	bool tmp = ::calib_req;
-	while(1){
-		be::md_state_led[2].play(Blib::LEDPattern::abs_speed_mode,false);
-		be::motor.set_target_rad(::target);
-		if(be::motor.is_calibrating()){
-			printf("%4.3f,%4.3f,%4.3f\r\n",be::motor.enc.get_rad(),be::motor.enc.get_rad_speed(),be::motor.enc.get_torque());
-		}else{
-			printf("%f,%f,%f,%f\r\n",
-					be::motor.dob.inverse_model.get_inertia(),
-					be::motor.dob.inverse_model.get_friction_coef(),
-					be::motor.calib_mng.get_inertia(),
-					be::motor.calib_mng.get_friction_coef());
-		}
-		HAL_Delay(1);
-
-//		::dist = sin((++cnt)*0.005);
-//		printf("%4.3f,%4.3f,%4.3f,%4.3f,%4.3f,%4.3f\r\n",::target,::speed,::torque,torque_obs,::dist,::dist_obs);
-//		HAL_Delay(1);
-//
-//		if(::calib_req){
-//			printf("%4.3f,%4.3f\r\n",::speed,::torque);
-//		}else{
-//			printf("%f,%f\r\n",calib_mng.get_inertia(),calib_mng.get_friction_coef());
-//		}
-//
-//		tmp = ::calib_req;
-
-
-//		HAL_Delay(100);
-//
-//		//can test
-//		Clib::Protocol::DataPacket dp;
-//		Clib::CanFrame cf;
-//		Clib::StrPack sd;
-//
-//		dp.board_ID = 2;
-//		dp.priority = 1;
-//		dp.data_type = Clib::Protocol::DataType::COMMON_ID;
-//		dp.writer().write<int32_t>(0x0123'4567);
-//		cf.decode_common_data_packet(dp);
-//
-//		printf("can buff:%d\r\n",be::can_main.tx_available());
-//
-//		cf.is_ext_id = false;
-//		cf.id = 0x012;
-//		cf.data_length = 8;
-//		be::can_main.tx(cf);
-//		printf("can tx\r\n");
-//
-//		HAL_Delay(100);
-//		if(be::can_main.rx_available()){
-//			auto rx_cf = be::can_main.rx();
-//			printf("rx can!\r\n");
-//		}
-//		sd.size = Clib::SLCAN::can_to_slcan(cf,(char*)(sd.data),sd.max_size);
-//
-//		printf("hello:%s\r\n",sd.data);
-//
-//		for(auto &e: BoardElement::encs){
-//			e.request_position();
-//		}
-//		HAL_Delay(100);
-	}
-}
-
-int _write(int file, char *ptr, int len) {
-	HAL_UART_Transmit(&huart2, (uint8_t*) ptr, len,100);
-	return len;
-}
-
-void usb_cdc_rx_callback(const uint8_t *input,size_t size){
-	be::usb_cdc.rx_interrupt_task(input, size);
-}
-
 }
 
 

@@ -38,9 +38,8 @@ private:
 	bool estimate_motor_type_f = true;
 
 	bool calibration_request = false;
-
-public:
 	CalibrationManager calib_mng;
+public:
 	CommonLib::Math::PIDController spd_pid;
 	CommonLib::Math::PIDController pos_pid;
 	CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel> dob;
