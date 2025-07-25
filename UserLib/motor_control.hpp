@@ -38,8 +38,9 @@ private:
 	bool estimate_motor_type_f = true;
 
 	bool calibration_request = false;
-	CalibrationManager calib_mng;
+
 public:
+	CalibrationManager calib_mng;
 	CommonLib::Math::PIDController spd_pid;
 	CommonLib::Math::PIDController pos_pid;
 	CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel> dob;
@@ -140,7 +141,7 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 		auto [_torque,_continue] = calib_mng.calibration(enc.get_rad_speed(),enc.get_torque());
 		calibration_request = _continue;
 		torque = _torque;
-		if(calibration_request){
+		if(not calibration_request){
 			dob.inverse_model.set_inertia(calib_mng.get_inertia());
 			dob.inverse_model.set_friction_coef(calib_mng.get_friction_coef());
 		}

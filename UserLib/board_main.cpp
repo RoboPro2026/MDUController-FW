@@ -94,17 +94,20 @@ namespace BoardElement{
 		Clib::Sequencer([](float v){led3(v>0.0f);})
 	};
 
-	auto encs = std::array<Blib::AMT21xEnc,4>{
-		Blib::AMT21xEnc(&huart5,0x54,1000.0f),
-		Blib::AMT21xEnc(&huart3,0x54,1000.0f),
-		Blib::AMT21xEnc(&hlpuart1,0x54,1000.0f),
-		Blib::AMT21xEnc(&huart2,0x54,1000.0f),
-	};
+//	auto encs = std::array<Blib::AMT21xEnc,4>{
+//		Blib::AMT21xEnc(&huart5,0x54,1000.0f),
+//		Blib::AMT21xEnc(&huart3,0x54,1000.0f),
+//		Blib::AMT21xEnc(&hlpuart1,0x54,1000.0f),
+//		Blib::AMT21xEnc(&huart2,0x54,1000.0f),
+//	};
 
 
 	auto test_timer = Clib::InterruptionTimerHard{&htim15};
 
-	auto motor = Blib::C6x0ControllerBuilder(0,MReg::RobomasMD::C610).build();
+//	auto motor = Blib::C6x0ControllerBuilder(0,MReg::RobomasMD::C610).build();
+	auto motor = Blib::C6x0ControllerBuilder(2,MReg::RobomasMD::C610)
+			.set_abs_enc_uart(false,&huart5)
+			.build();
 
 	auto dob_test = Clib::Math::DisturbanceObserver<Blib::MotorInverceModel>{
 		1000.0f,
@@ -141,6 +144,9 @@ float dist = 0.0f;
 auto calib_mng = BoardLib::CalibrationManager();
 bool calib_req = true;
 
+int16_t rm_val = 0;
+auto vrm = BoardLib::VirtualRobomasMotor(1000.0f,2,MReg::RobomasMD::C610,0.0004,0.001);
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //割り込み関数たち
@@ -150,15 +156,15 @@ namespace be = BoardElement;
 //uart(rs485
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(huart == be::encs[0].get_handler()){
-		be::encs[0].rx_interrupt_task();
-	}else if(huart == be::encs[1].get_handler()){
-		be::encs[1].rx_interrupt_task();
-	}else if(huart == be::encs[2].get_handler()){
-		be::encs[2].rx_interrupt_task();
-	}else if(huart == be::encs[3].get_handler()){
-		be::encs[3].rx_interrupt_task();
-	}
+//	if(huart == be::encs[0].get_handler()){
+//		be::encs[0].rx_interrupt_task();
+//	}else if(huart == be::encs[1].get_handler()){
+//		be::encs[1].rx_interrupt_task();
+//	}else if(huart == be::encs[2].get_handler()){
+//		be::encs[2].rx_interrupt_task();
+//	}else if(huart == be::encs[3].get_handler()){
+//		be::encs[3].rx_interrupt_task();
+//	}
 }
 
 //can
@@ -216,41 +222,62 @@ void cppmain(void){
 //		::dist_obs = ::dob.observe_disturbance(::speed,::torque);
 //		::torque -= ::dist_obs;
 
-		if(::calib_req){
-			auto [trq,_calib_continue] = calib_mng.calibration(::speed,::torque);
-			::calib_req = _calib_continue;
-			::torque = trq;
+		rm_val = Blib::RobomasMotorParam::torque_to_robomas_value(be::motor.get_motor_type(), be::motor.get_torque());
+		auto cf = vrm(rm_val);
+		if(be::motor.update(cf)){
+			be::md_state_led[2].update();
 		}
-		::speed = ::motor_model(::torque + ::dist)*(1.0/::D);
 
-		be::md_state_led[2].update();
+//		if(::calib_req){
+//			auto [trq,_calib_continue] = calib_mng.calibration(::speed,::torque);
+//			::calib_req = _calib_continue;
+//			::torque = trq;
+//		}
+//		::speed = ::motor_model(::torque + ::dist)*(1.0/::D);
+
+
 	});
 
 	sec_tim.set_task([](){
-		target *= -1.0f;
+		::target *= -1.0f;
 	});
 	be::test_timer.start_timer(0.001f);
 	sec_tim.start_timer(1.0f);
 
-	be::motor.use_dob(true);
+	//be::motor.use_dob(true);
 	be::motor.set_control_mode(MReg::ControlMode::POSITION);
+	//be::motor.set_torque(0.1);
+	be::motor.start_calibration();
 
 	int cnt = 0;
 	bool tmp = ::calib_req;
 	while(1){
+		be::md_state_led[2].play(Blib::LEDPattern::abs_speed_mode,false);
+		be::motor.set_target_rad(::target);
+		if(be::motor.is_calibrating()){
+			printf("%4.3f,%4.3f,%4.3f\r\n",be::motor.enc.get_rad(),be::motor.enc.get_rad_speed(),be::motor.enc.get_torque());
+		}else{
+			printf("%f,%f,%f,%f\r\n",
+					be::motor.dob.inverse_model.get_inertia(),
+					be::motor.dob.inverse_model.get_friction_coef(),
+					be::motor.calib_mng.get_inertia(),
+					be::motor.calib_mng.get_friction_coef());
+		}
+		HAL_Delay(1);
+
 //		::dist = sin((++cnt)*0.005);
 //		printf("%4.3f,%4.3f,%4.3f,%4.3f,%4.3f,%4.3f\r\n",::target,::speed,::torque,torque_obs,::dist,::dist_obs);
 //		HAL_Delay(1);
+//
+//		if(::calib_req){
+//			printf("%4.3f,%4.3f\r\n",::speed,::torque);
+//		}else{
+//			printf("%f,%f\r\n",calib_mng.get_inertia(),calib_mng.get_friction_coef());
+//		}
+//
+//		tmp = ::calib_req;
 
-		if(::calib_req){
-			printf("%4.3f,%4.3f\r\n",::speed,::torque);
-		}else{
-			printf("%f,%f\r\n",calib_mng.get_inertia(),calib_mng.get_friction_coef());
-		}
 
-		tmp = ::calib_req;
-
-		be::md_state_led[2].play(Blib::LEDPattern::abs_speed_mode,false);
 //		HAL_Delay(100);
 //
 //		//can test
