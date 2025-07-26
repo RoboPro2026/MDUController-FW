@@ -107,7 +107,9 @@ public:
 };
 
 inline void C6x0Controller::set_control_mode(MReg::ControlMode _mode){
-	if(abs_enc->is_dead() || abs_enc == nullptr){
+	if(abs_enc == nullptr){
+		using_abs_enc = false;
+	}else if(abs_enc->is_dead()){
 		using_abs_enc = false;
 	}
 
@@ -148,9 +150,13 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 		return true;
 	}
 
-	if(abs_enc->is_dead() || abs_enc == nullptr){
-		using_abs_enc = false;
+	if(abs_enc){
+		if(abs_enc->is_dead()){
+			using_abs_enc = false;
+		}
+		abs_enc->read_start();
 	}
+
 	float rad = using_abs_enc ? abs_enc->get_rad(): enc.get_rad();
 	float rad_spd = using_abs_enc ? abs_enc->get_rad_speed(): enc.get_rad_speed();
 
@@ -162,15 +168,10 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 		if(dob_enable){
 			torque -= dob.observe_disturbance(rad_spd,torque);
 		}
-	case MReg::ControlMode::OPEN_LOOP:
-		//nop
 		break;
 	default:
-		//nop
 		break;
 	}
-
-	abs_enc->read_start();
 	return true;
 }
 
