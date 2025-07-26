@@ -107,9 +107,11 @@ public:
 };
 
 inline void C6x0Controller::set_control_mode(MReg::ControlMode _mode){
-	if(abs_enc == nullptr){
-		using_abs_enc = false;
-	}else if(abs_enc->is_dead()){
+	if(abs_enc){
+		if(abs_enc->is_dead()){
+			using_abs_enc = false;
+		}
+	}else{
 		using_abs_enc = false;
 	}
 
@@ -155,6 +157,8 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 			using_abs_enc = false;
 		}
 		abs_enc->read_start();
+	}else{
+		using_abs_enc = false;
 	}
 
 	float rad = using_abs_enc ? abs_enc->get_rad(): enc.get_rad();

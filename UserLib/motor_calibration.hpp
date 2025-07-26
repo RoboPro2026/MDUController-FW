@@ -97,6 +97,7 @@ public:
 				return std::pair<float,bool>{0.0f,true};
 			}
 		}
+		return std::pair<float,bool>{0.0f,false};
 	}
 
 	float get_inertia(void)const{

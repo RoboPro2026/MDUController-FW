@@ -19,6 +19,7 @@
 #include "CommonLib/timer_interruption_control.hpp"
 #include "CommonLib/usb_cdc.hpp"
 #include "CommonLib/sequencer.hpp"
+#include "flash_management.hpp"
 
 #include "LED_pattern.hpp"
 #include "motor_control.hpp"
@@ -124,7 +125,16 @@ namespace be = BoardElement;
 //メイン関数
 extern "C"{
 void cppmain(void){
-	HAL_Delay(100);
+	auto fwr = Blib::G474FlashRW(FLASH_BANK_2,126,0x807F000);
+
+	float dummy[] = {3.14,0.123,0.567};
+	fwr.write((uint8_t*)dummy, sizeof(dummy));
+	fwr.read((uint8_t*)dummy, sizeof(dummy));
+	for(int i = 0; i < 3; i++){
+		printf("%d:%f\r\n",i,dummy[i]);
+	}
+
+	HAL_Delay(1000);
 	//be::can_main.set_filter_free(0,Clib::CanFilterMode::ONLY_EXT);
 	be::can_main.set_filter(0,0x012,0x0FF,Clib::CanFilterMode::ONLY_STD);
 	be::can_main.start();
