@@ -125,13 +125,14 @@ namespace be = BoardElement;
 //メイン関数
 extern "C"{
 void cppmain(void){
-	auto fwr = Blib::G474FlashRW(FLASH_BANK_2,126,0x807F000);
+	auto fwr = Blib::G4FlashRW(FLASH_BANK_2,126,0x807F000);
 
-	float dummy[] = {3.14,0.123,0.567};
+	const float dummy[] = {3.14,0.123,0.567};
 	fwr.write((uint8_t*)dummy, sizeof(dummy));
-	fwr.read((uint8_t*)dummy, sizeof(dummy));
+	float read_buff[10] = {0};
+	fwr.read((uint8_t*)read_buff, sizeof(read_buff));
 	for(int i = 0; i < 3; i++){
-		printf("%d:%f\r\n",i,dummy[i]);
+		printf("%d:%f\r\n",i,read_buff[i]);
 	}
 
 	HAL_Delay(1000);

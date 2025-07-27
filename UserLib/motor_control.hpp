@@ -37,8 +37,8 @@ private:
 	float rad_origin = 0.0f;
 
 	bool estimate_motor_type_f = true;
-
 	bool calibration_request = false;
+
 	CalibrationManager calib_mng;
 public:
 	CommonLib::Math::PIDController spd_pid;
@@ -53,6 +53,7 @@ public:
 			MReg::ControlMode _mode,
 			bool _dob_en,
 			bool _using_abs_enc,
+			BoardLib::CalibrationManager&& _calib_mng,
 			CommonLib::Math::PIDController&& _spd_pid,
 			CommonLib::Math::PIDController&& _pos_pid,
 			CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel>&& _dob,
@@ -63,6 +64,7 @@ public:
 	 mode(_mode),
 	 dob_enable(_dob_en),
 	 using_abs_enc(_using_abs_enc),
+	 calib_mng(std::move(_calib_mng)),
 	 spd_pid(std::move(_spd_pid)),
 	 pos_pid(std::move(_pos_pid)),
 	 dob(std::move(_dob)),
@@ -196,10 +198,12 @@ private:
 	float spd_kp = 0.5f;
 	float spd_ki = 0.0f;//0.1f;
 	float spd_kd = 0.0f;
+	float trq_limit = 1.0f;
 
 	float pos_kp = 5.0f;
 	float pos_ki = 0.0f;
 	float pos_kd = 0.0f;
+	float spd_limit = 314.0f;
 
 	bool using_abs_enc = false;
 	std::unique_ptr<IABSEncoder> abs_enc = nullptr;
@@ -209,28 +213,33 @@ private:
 	float dob_load_friction_coef = 0.0005f;
 	float dob_lpf_cutoff_freq = 5.0f;
 	float dob_lpf_q_factor = 1.0f;
+
+	int calib_measurement_n = 6;
+	float calib_on_torque = 0.1f;
+	float calib_settling_time = 5.0f;
 public:
 	C6x0ControllerBuilder(size_t _motor_id,MReg::RobomasMD _m_type,MReg::ControlMode _c_mode = MReg::ControlMode::OPEN_LOOP,float _update_freq = 1000.0f){
 		motor_id = _motor_id;
 		m_type = _m_type;
 		update_freq = _update_freq;
 	}
-	C6x0ControllerBuilder& set_default_speed_pid_gain(float kp,float ki,float kd){
+	C6x0ControllerBuilder& set_default_speed_pid_gain(float kp,float ki,float kd,float trq_lim){
 		spd_kp = kp;
 		spd_ki = ki;
 		spd_kd = kd;
+		trq_limit = trq_lim;
 		return *this;
 	}
-	C6x0ControllerBuilder& set_default_position_pid_gain(float kp,float ki,float kd){
+	C6x0ControllerBuilder& set_default_position_pid_gain(float kp,float ki,float kd,float spd_lim){
 		pos_kp = kp;
 		pos_ki = ki;
 		pos_kd = kd;
+		spd_limit = spd_lim;
 		return *this;
 	}
 	C6x0ControllerBuilder& set_abs_enc(std::unique_ptr<IABSEncoder> _abs_enc,bool _using_abs_enc){
 		using_abs_enc = _using_abs_enc;
 		abs_enc = std::move(_abs_enc);
-
 		return *this;
 	}
 	C6x0ControllerBuilder& set_dob_param(bool _dob_enable,float _dob_load_inertia,float _dob_load_friction_coef,float _dob_lpf_cutoff_freq,float _dob_lpf_q_factor){
@@ -241,6 +250,12 @@ public:
 		dob_lpf_q_factor = _dob_lpf_q_factor;
 		return *this;
 	}
+	C6x0ControllerBuilder& set_calibration_param(int _measurement_n = 6,float _on_torque = 0.1f,float _settling_time = 5.0f){
+		calib_measurement_n = _measurement_n;
+		calib_on_torque = _on_torque;
+		calib_settling_time = _settling_time;
+		return *this;
+	}
 
 	C6x0Controller build(void){
 		return C6x0Controller{
@@ -249,14 +264,14 @@ public:
 					c_mode,
 					dob_enable,
 					using_abs_enc,
-
+					BoardLib::CalibrationManager(calib_measurement_n,update_freq,calib_on_torque,calib_settling_time),
 					CommonLib::Math::PIDBuilder(update_freq)
 									.set_gain(spd_kp, spd_ki, spd_kd)
-									.set_limit(1.0f)
+									.set_limit(trq_limit)
 									.build(),
 					CommonLib::Math::PIDBuilder(update_freq)
 									.set_gain(pos_kp, pos_ki, pos_kd)
-									.set_limit(314.0f)
+									.set_limit(spd_limit)
 									.build(),
 					CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel>(
 										update_freq,

@@ -14,12 +14,16 @@
 //リンカの設定などをわすれないこと
 //https://rt-net.jp/mobility/archives/25755
 namespace BoardLib{
-class G474FlashRW{
+
+#ifdef STM32G4xx_HAL_H
+#ifdef HAL_FLASH_MODULE_ENABLED
+
+class G4FlashRW{
 	const uint32_t bank;
 	const uint32_t page;
 	const uint32_t start_addr;
 public:
-	G474FlashRW(uint32_t _bank,uint32_t _page,uint32_t _start_addr):bank(_bank),page(_page),start_addr(_start_addr){}
+	G4FlashRW(uint32_t _bank,uint32_t _page,uint32_t _start_addr):bank(_bank),page(_page),start_addr(_start_addr){}
 
 	void write(const uint8_t *data,size_t len){
 		HAL_FLASH_Unlock();
@@ -43,6 +47,8 @@ public:
 		memcpy(data,(void*)start_addr,len);
 	}
 };
+#endif //HAL_FLASH_MODULE_ENABLED
+#endif //STM32G4xx_HAL_H
 }
 
 

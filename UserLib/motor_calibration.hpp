@@ -14,12 +14,12 @@
 namespace BoardLib{
 class CalibrationManager{
 private:
-	static constexpr int start_up_time = 100;
-	static constexpr int on_hold_time = 5000;
-	static constexpr int off_time = 3000;
-	static constexpr int measurement_n = 6;
+	const int measurement_n;
+	float on_torque;
 
-	float on_torque = 0.1;
+	const int start_up_time;
+	const int on_hold_time;
+	const int off_time;
 
 	enum class State{
 		START_UP,
@@ -38,6 +38,15 @@ private:
 	float J_ave = 0.0f;
 	float D_ave = 0.0f;
 public:
+	//測定回数，測定周波数，印加トルク，収束するまでの目安時間
+	CalibrationManager(int _measurement_n = 6,float update_freq = 1000.0f,float _on_torque = 0.1f,float settling_time = 5.0f)
+	:measurement_n(_measurement_n),
+	 on_torque(_on_torque),
+	 start_up_time(static_cast<int>(settling_time*update_freq*0.02f)),
+	 on_hold_time(static_cast<int>(settling_time*update_freq*1.0f)),
+	 off_time(static_cast<int>(settling_time*update_freq*1.0f)){
+	}
+
 	//キャリブレーションする際は1kHzで呼び出し
 	std::pair<float,bool> calibration(float spd,float trq){
 		switch(state){
@@ -65,7 +74,7 @@ public:
 			}
 		case State::DECELERATION:
 			cnt ++;
-			if(abs(spd) < abs(max_spd*(1-0.632f))){
+			if(abs(spd) < abs(max_spd*(1.0/M_E))){
 				J = (static_cast<float>(cnt)/1000.f)*D;
 				cnt = 0;
 				state = State::OFF;
