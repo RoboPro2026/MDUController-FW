@@ -83,7 +83,7 @@ public:
 	void set_control_mode(MReg::ControlMode _mode);
 	MReg::ControlMode get_control_mode(void)const{ return mode; }
 
-	void use_abs_enc(bool _using_abs_enc){ using_abs_enc = _using_abs_enc; }
+	void use_abs_enc(bool _using_abs_enc){ using_abs_enc = abs_enc->is_dead() ? false : _using_abs_enc; }
 	bool is_using_abs_enc(void)const{return using_abs_enc;}
 
 	void use_dob(bool dob_en){dob_enable = dob_en;}
@@ -106,6 +106,9 @@ public:
 
 	//CANの受信割込みで呼び出し
 	bool update(const CommonLib::CanFrame &frame);
+	int16_t get_current_can_format(void)const{
+		return RobomasMotorParam::torque_to_robomas_value(motor_type, torque);
+	}
 };
 
 inline void C6x0Controller::set_control_mode(MReg::ControlMode _mode){
@@ -122,7 +125,6 @@ inline void C6x0Controller::set_control_mode(MReg::ControlMode _mode){
 	target_speed = 0.0f;
 	spd_pid.reset();
 	pos_pid.reset();
-
 	dob.reset();
 	mode = _mode;
 }
@@ -180,8 +182,6 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 	}
 	return true;
 }
-
-
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -250,7 +250,7 @@ public:
 		dob_lpf_q_factor = _dob_lpf_q_factor;
 		return *this;
 	}
-	C6x0ControllerBuilder& set_calibration_param(int _measurement_n = 6,float _on_torque = 0.1f,float _settling_time = 5.0f){
+	C6x0ControllerBuilder& set_calibration_param(int _measurement_n,float _on_torque = 0.1f,float _settling_time = 5.0f){
 		calib_measurement_n = _measurement_n;
 		calib_on_torque = _on_torque;
 		calib_settling_time = _settling_time;
@@ -264,7 +264,11 @@ public:
 					c_mode,
 					dob_enable,
 					using_abs_enc,
-					BoardLib::CalibrationManager(calib_measurement_n,update_freq,calib_on_torque,calib_settling_time),
+					BoardLib::CalibrationManager(
+							calib_measurement_n,
+							update_freq,
+							calib_on_torque,
+							calib_settling_time),
 					CommonLib::Math::PIDBuilder(update_freq)
 									.set_gain(spd_kp, spd_ki, spd_kd)
 									.set_limit(trq_limit)
@@ -274,15 +278,14 @@ public:
 									.set_limit(spd_limit)
 									.build(),
 					CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel>(
-										update_freq,
-										BoardLib::MotorInverceModel(
-											update_freq,
-											dob_load_inertia,
-											dob_load_friction_coef
-										),
-										dob_lpf_cutoff_freq,
-										dob_lpf_q_factor
-									),
+							update_freq,
+							BoardLib::MotorInverceModel(
+								update_freq,
+								dob_load_inertia,
+								dob_load_friction_coef
+							),
+							dob_lpf_cutoff_freq,
+							dob_lpf_q_factor),
 					BoardLib::C6x0Enc(m_type,update_freq),
 					std::move(abs_enc)
 		};
