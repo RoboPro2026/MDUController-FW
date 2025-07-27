@@ -15,6 +15,7 @@ namespace BoardLib{
 class CalibrationManager{
 private:
 	const int measurement_n;
+	const float update_period;
 	float on_torque;
 
 	const int start_up_time;
@@ -41,16 +42,17 @@ public:
 	//測定回数，測定周波数，印加トルク，収束するまでの目安時間
 	CalibrationManager(int _measurement_n = 6,float update_freq = 1000.0f,float _on_torque = 0.1f,float settling_time = 5.0f)
 	:measurement_n(_measurement_n),
+	 update_period(1.0f/update_freq),
 	 on_torque(_on_torque),
 	 start_up_time(static_cast<int>(settling_time*update_freq*0.02f)),
 	 on_hold_time(static_cast<int>(settling_time*update_freq*1.0f)),
 	 off_time(static_cast<int>(settling_time*update_freq*1.0f)){
 	}
 
-	//キャリブレーションする際は1kHzで呼び出し
+	//[モーターに印加するトルク，キャリブレーション処理を継続するか]
 	std::pair<float,bool> calibration(float spd,float trq){
 		switch(state){
-		case State::START_UP:
+		case State::START_UP://起動時は一瞬大トルクを印加して加速
 			cnt ++;
 			if(cnt > start_up_time){
 				cnt = 0;
@@ -60,7 +62,7 @@ public:
 					D_ave = 0.0f;
 				}
 			}
-			return std::pair<float,bool>{on_torque * 5,true};
+			return std::pair<float,bool>{on_torque * 5.0f,true};
 		case State::ON_HOLD:
 			cnt ++;
 			if(cnt > on_hold_time){
@@ -75,7 +77,7 @@ public:
 		case State::DECELERATION:
 			cnt ++;
 			if(abs(spd) < abs(max_spd*(1.0/M_E))){
-				J = (static_cast<float>(cnt)/1000.f)*D;
+				J = (static_cast<float>(cnt)*update_period)*D;
 				cnt = 0;
 				state = State::OFF;
 			}
