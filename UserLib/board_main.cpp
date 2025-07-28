@@ -141,12 +141,11 @@ void cppmain(void){
 	be::can_main.start();
 
 	be::test_timer.set_task([](){
-		be::led2(true);
+		//Test::rm_val = BoardLib::RobomasMotorParam::torque_to_robomas_value(MReg::RobomasMD::C610, be::motor.get_torque());
 		Test::rm_val = be::motor.get_current_can_format();
 		auto cf = Test::vrm(Test::rm_val);
 		be::motor.update(cf);
-		be::led2(false);
-		//be::md_state_led[2].update();
+		be::md_state_led[2].update();
 	});
 
 	Test::sec_tim.set_task([](){
@@ -155,12 +154,14 @@ void cppmain(void){
 	be::test_timer.start_timer(0.001f);
 	Test::sec_tim.start_timer(1.0f);
 
-//	be::motor.start_calibration();
-//	while(be::motor.is_calibrating()){
-//		be::md_state_led[2].play(Blib::LEDPattern::test,false);
-//		HAL_Delay(10);
-//	}
-//	printf("%f,%f\r\n",be::motor.dob.inverse_model.get_inertia(),be::motor.dob.inverse_model.get_friction_coef());
+	be::motor.start_calibration();
+	while(be::motor.is_calibrating()){
+		be::md_state_led[2].play(Blib::LEDPattern::test,false);
+		printf("%d,%4.3f,%4.3f,%4.3f,%d\r\n",be::motor.get_motor_type(),be::motor.get_overwrited_rad(),be::motor.enc.get_rad_speed(),
+				be::motor.enc.get_torque(),Test::rm_val);
+		HAL_Delay(10);
+	}
+	printf("%f,%f\r\n",be::motor.dob.inverse_model.get_inertia(),be::motor.dob.inverse_model.get_friction_coef());
 
 	be::motor.overwrite_rad(0.0f);
 	be::motor.set_control_mode(MReg::ControlMode::POSITION);

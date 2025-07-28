@@ -39,8 +39,8 @@ private:
 	bool estimate_motor_type_f = true;
 	bool calibration_request = false;
 
-	CalibrationManager calib_mng;
 public:
+	CalibrationManager calib_mng;
 	CommonLib::Math::PIDController spd_pid;
 	CommonLib::Math::PIDController pos_pid;
 	CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel> dob;
@@ -107,7 +107,7 @@ public:
 	//CANの受信割込みで呼び出し
 	bool update(const CommonLib::CanFrame &frame);
 	int16_t get_current_can_format(void)const{
-		return RobomasMotorParam::torque_to_robomas_value(motor_type, torque);
+		return RobomasMotorParam::torque_to_robomas_value(motor_type, torque); //C610だとバグる？
 	}
 };
 
@@ -149,7 +149,7 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 		auto [_torque,_continue] = calib_mng.calibration(enc.get_rad_speed(),enc.get_torque());
 		calibration_request = _continue;
 		torque = _torque;
-		if(not calibration_request){
+		if(not calibration_request && not calib_mng.is_failed()){
 			dob.inverse_model.set_inertia(calib_mng.get_inertia());
 			dob.inverse_model.set_friction_coef(calib_mng.get_friction_coef());
 		}
@@ -215,7 +215,7 @@ private:
 	float dob_lpf_q_factor = 1.0f;
 
 	int calib_measurement_n = 6;
-	float calib_on_torque = 0.1f;
+	float calib_on_torque = 0.1f; //TODO:なんか0.1とかにするとシミュできない
 	float calib_settling_time = 5.0f;
 public:
 	C6x0ControllerBuilder(size_t _motor_id,MReg::RobomasMD _m_type,MReg::ControlMode _c_mode = MReg::ControlMode::OPEN_LOOP,float _update_freq = 1000.0f){

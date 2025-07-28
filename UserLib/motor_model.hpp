@@ -112,7 +112,7 @@ public:
 		writer.write<int16_t>(static_cast<int16_t>(rad * rad_to_angle * RobomasMotorParam::get_gear_ratio(m_type)),false);
 		writer.write<int16_t>(static_cast<int16_t>(speed * rad_to_rpm * RobomasMotorParam::get_gear_ratio(m_type)),false);
 		writer.write<int16_t>(static_cast<int16_t>(_torque),false);
-		writer.write<int8_t>(23);
+		writer.write<int8_t>(m_type == MReg::RobomasMD::C610 ? 0 : 23);
 		cf.data_length = 8;
 		return cf;
 	}

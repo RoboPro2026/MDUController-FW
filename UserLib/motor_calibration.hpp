@@ -38,9 +38,11 @@ private:
 	float D = 0.0f;
 	float J_ave = 0.0f;
 	float D_ave = 0.0f;
+
+	bool error = false;
 public:
 	//測定回数，測定周波数，印加トルク，収束するまでの目安時間
-	CalibrationManager(int _measurement_n = 6,float update_freq = 1000.0f,float _on_torque = 0.1f,float settling_time = 5.0f)
+	CalibrationManager(int _measurement_n = 4,float update_freq = 1000.0f,float _on_torque = 0.1f,float settling_time = 5.0f)
 	:measurement_n(_measurement_n),
 	 update_period(1.0f/update_freq),
 	 on_torque(_on_torque),
@@ -53,6 +55,7 @@ public:
 	std::pair<float,bool> calibration(float spd,float trq){
 		switch(state){
 		case State::START_UP://起動時は一瞬大トルクを印加して加速
+			error = false;
 			cnt ++;
 			if(cnt > start_up_time){
 				cnt = 0;
@@ -67,6 +70,9 @@ public:
 			cnt ++;
 			if(cnt > on_hold_time){
 				D = trq/spd;
+				if(D < 0.0f){
+					error = true;
+				}
 				max_spd = spd;
 				cnt = 0;
 				state = State::DECELERATION;
@@ -86,16 +92,12 @@ public:
 			cnt ++;
 			if(cnt > off_time){//十分減速するまで待機
 				cnt = 0;
-				if(J < 0.0f || D < 0.0f){ //値がおかしい場合もう一度測定
-					loop_cnt --;
-				}else{
-					J_ave += J;
-					D_ave += D;
-				}
+				J_ave += J;
+				D_ave += D;
 
 				loop_cnt ++;
 				state = State::START_UP;
-				if(loop_cnt > measurement_n){ //規定回数測定
+				if(loop_cnt >= measurement_n || error){ //規定回数測定
 					loop_cnt = 0;
 					J_ave /= measurement_n;
 					D_ave /= measurement_n;
@@ -116,6 +118,9 @@ public:
 	}
 	float get_friction_coef(void)const{
 		return D_ave;
+	}
+	bool is_failed(void)const{
+		return error;
 	}
 	void reset(void){
 		state = State::START_UP;

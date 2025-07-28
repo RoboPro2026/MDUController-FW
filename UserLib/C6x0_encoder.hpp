@@ -11,6 +11,7 @@
 #include "CommonLib/can_if.hpp"
 #include "CommonLib/encoder.hpp"
 #include "motor_param.hpp"
+#include "CommonLib/Math/filter.hpp"
 
 namespace BoardLib{
 	class C6x0Enc:public CommonLib::ContinuableEncoder{
@@ -21,6 +22,8 @@ namespace BoardLib{
 		MReg::RobomasMD m_type;
 		int16_t current = 0;
 		int8_t temperature = 0;
+
+		CommonLib::Math::LowpassFilterBD<float> i_lpf = CommonLib::Math::LowpassFilterBD<float>{1000.0f,50.0f};
 	public:
 		C6x0Enc(MReg::RobomasMD _m_type,float update_freq = 1000.0f)
 		:CommonLib::ContinuableEncoder(13,update_freq,RobomasMotorParam::get_gear_ratio(_m_type)),
@@ -42,6 +45,7 @@ namespace BoardLib{
 			update(angle,angle_speed);
 
 			current = static_cast<int16_t>(frame.data[4]<<8 | frame.data[5]);
+			i_lpf(RobomasMotorParam::robomas_value_to_torque(m_type, current));
 			temperature = frame.data[6];
 			return true;
 		}
@@ -50,7 +54,10 @@ namespace BoardLib{
 			return temperature;
 		}
 		float get_torque(void)const{
-			return RobomasMotorParam::robomas_value_to_torque(m_type, current);
+			return i_lpf.get();//;RobomasMotorParam::robomas_value_to_torque(m_type, current);
+		}
+		int16_t get_current(void)const{
+			return current;
 		}
 	};
 }
