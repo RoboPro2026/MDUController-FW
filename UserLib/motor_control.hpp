@@ -107,7 +107,7 @@ public:
 	//CANの受信割込みで呼び出し
 	bool update(const CommonLib::CanFrame &frame);
 	int16_t get_current_can_format(void)const{
-		return RobomasMotorParam::torque_to_robomas_value(motor_type, torque); //C610だとバグる？
+		return RobomasMotorParam::torque_to_robomas_value(motor_type, torque);
 	}
 };
 

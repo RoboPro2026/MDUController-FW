@@ -141,11 +141,12 @@ void cppmain(void){
 	be::can_main.start();
 
 	be::test_timer.set_task([](){
-		//Test::rm_val = BoardLib::RobomasMotorParam::torque_to_robomas_value(MReg::RobomasMD::C610, be::motor.get_torque());
+		be::led2(true);
 		Test::rm_val = be::motor.get_current_can_format();
 		auto cf = Test::vrm(Test::rm_val);
 		be::motor.update(cf);
-		be::md_state_led[2].update();
+		be::led2(false);
+		//be::md_state_led[2].update();
 	});
 
 	Test::sec_tim.set_task([](){
