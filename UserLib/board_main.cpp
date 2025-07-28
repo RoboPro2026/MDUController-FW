@@ -19,14 +19,12 @@
 #include "flash_management.hpp"
 
 #include "LED_pattern.hpp"
-#include "motor_control.hpp"
-#include "vesc_data.hpp"
-#include "motor_calibration.hpp"
+#include "control_unit.hpp"
+
 
 #include <array>
 #include <bit>
 #include <stdio.h>
-#include "abs_encoder.hpp"
 
 
 extern FDCAN_HandleTypeDef hfdcan2;
@@ -81,26 +79,13 @@ namespace BoardElement{
 	auto led_r = Clib::PWMHard{&htim1,TIM_CHANNEL_2};
 	auto led_g = Clib::PWMHard{&htim1,TIM_CHANNEL_3};
 	auto led_b = Clib::PWMHard{&htim1,TIM_CHANNEL_4};
-	auto led0 = Clib::GPIO{LED0_GPIO_Port,LED0_Pin};
-	auto led1 = Clib::GPIO{LED1_GPIO_Port,LED1_Pin};
-	auto led2 = Clib::GPIO{LED2_GPIO_Port,LED2_Pin};
-	auto led3 = Clib::GPIO{LED3_GPIO_Port,LED3_Pin};
 
-	auto led_r_seqencer = Clib::Sequencer{[](float v){led_r(v);}};
-	auto led_g_seqencer = Clib::Sequencer{[](float v){led_g(v);}};
-	auto led_b_seqencer = Clib::Sequencer{[](float v){led_b(v);}};
-
-	auto md_state_led = std::array<Clib::Sequencer,4>{
-		Clib::Sequencer([](float v){led0(v>0.0f);}),
-		Clib::Sequencer([](float v){led1(v>0.0f);}),
-		Clib::Sequencer([](float v){led2(v>0.0f);}),
-		Clib::Sequencer([](float v){led3(v>0.0f);})
-	};
+	auto motor_unit = Blib::MotorUnit(0,LED0_GPIO_Port,LED0_Pin);
 
 	auto test_timer = Clib::InterruptionTimerHard{&htim15};
 
 	auto motor = Blib::C6x0ControllerBuilder(2,MReg::RobomasMD::C610)
-			.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc) Blib::AMT21xEnc(&huart5)),false)
+			.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5)),false)
 			.build();
 
 
@@ -118,7 +103,15 @@ namespace be = BoardElement;
 //メイン関数
 extern "C"{
 void cppmain(void){
-	init();
+	Clib::CanFrame cf;
+	auto w0 = cf.writer();
+	be::motor_unit.id_map.get(1,w0);
+	printf("%d\r\n",cf.data[0]);
+
+	auto w1 = cf.writer();
+	be::motor_unit.is_active = true;
+	be::motor_unit.id_map.get(1,w1);
+	printf("%d\r\n",cf.data[0]);
 	while(1){
 
 	}
@@ -176,8 +169,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim == be::test_timer.get_handler()){
 		be::test_timer.interrupt_task();
-	}else if(htim == Test::sec_tim.get_handler()){
-		Test::sec_tim.interrupt_task();
 	}
 }
 
