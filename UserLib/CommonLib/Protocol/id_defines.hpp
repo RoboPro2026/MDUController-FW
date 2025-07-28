@@ -38,37 +38,38 @@ namespace PCURegister{
 }
 
 namespace MDCRegister{
-	inline constexpr size_t NOP = 0x0000;
-	inline constexpr size_t MOTOR_TYPE = 0x0001;
-	inline constexpr size_t CONTROL_MODE = 0x0002;
-	inline constexpr size_t ABS_GEAR_RATIO = 0x0003;
-	inline constexpr size_t MOTOR_STATE = 0x0004;
-	inline constexpr size_t CAN_TIMEOUT = 0x0005;
-	inline constexpr size_t DOB_EN = 0x0006;
-	inline constexpr size_t LOAD_J = 0x0007;
-	inline constexpr size_t LOAD_D = 0x0008;
-	inline constexpr size_t DOB_CF = 0x0009;
+	inline constexpr size_t NOP             = 0x0000;
+	inline constexpr size_t MOTOR_STATE     = 0x0001;
+	inline constexpr size_t CONTROL         = 0x0002;
 
-	inline constexpr size_t TRQ = 0x0010;
-	inline constexpr size_t TRQ_TARGET = 0x0011;
+	inline constexpr size_t ABS_GEAR_RATIO  = 0x0005;
+	inline constexpr size_t CAL_RQ          = 0x0006;
+	inline constexpr size_t LOAD_J          = 0x0007;
+	inline constexpr size_t LOAD_D          = 0x0008;
+	inline constexpr size_t DOB_CF          = 0x0009;
 
-	inline constexpr size_t SPD = 0x0020;
-	inline constexpr size_t SPD_TARGET = 0x0021;
-	inline constexpr size_t TRQ_LIM = 0x0022;
-	inline constexpr size_t SPD_GAIN_P = 0x0023;
-	inline constexpr size_t SPD_GAIN_I = 0x0024;
-	inline constexpr size_t SPD_GAIN_D = 0x0025;
+	inline constexpr size_t CAN_TIMEOUT     = 0x000F;
 
-	inline constexpr size_t POS = 0x0030;
-	inline constexpr size_t POS_TARGET = 0x0031;
-	inline constexpr size_t SPD_LIMIT = 0x0032;
-	inline constexpr size_t POS_GAIN_P = 0x0033;
-	inline constexpr size_t POS_GAIN_I = 0x0034;
-	inline constexpr size_t POS_GAIN_D = 0x0035;
+	inline constexpr size_t TRQ             = 0x0010;
+	inline constexpr size_t TRQ_TARGET      = 0x0011;
 
-	inline constexpr size_t ABS_POS = 0x0036;
-	inline constexpr size_t ABS_SPD = 0x0037;
-	inline constexpr size_t ABS_TURN_CNT = 0x0039;
+	inline constexpr size_t SPD             = 0x0020;
+	inline constexpr size_t SPD_TARGET      = 0x0021;
+	inline constexpr size_t TRQ_LIM         = 0x0022;
+	inline constexpr size_t SPD_GAIN_P      = 0x0023;
+	inline constexpr size_t SPD_GAIN_I      = 0x0024;
+	inline constexpr size_t SPD_GAIN_D      = 0x0025;
+
+	inline constexpr size_t POS             = 0x0030;
+	inline constexpr size_t POS_TARGET      = 0x0031;
+	inline constexpr size_t SPD_LIMIT       = 0x0032;
+	inline constexpr size_t POS_GAIN_P      = 0x0033;
+	inline constexpr size_t POS_GAIN_I      = 0x0034;
+	inline constexpr size_t POS_GAIN_D      = 0x0035;
+
+	inline constexpr size_t ABS_POS         = 0x003A;
+	inline constexpr size_t ABS_SPD         = 0x003B;
+	inline constexpr size_t ABS_TURN_CNT    = 0x003C;
 
 	inline constexpr size_t VESC_MODE = 0x0040;
 	inline constexpr size_t VESC_TARGET = 0x0041;
@@ -82,9 +83,11 @@ namespace MDCRegister{
 		POSITION,
 	};
 	enum class VescMode:size_t{
+		NOP,
 		PWM,
 		CURRENT,
-		SPEED
+		SPEED,
+		POSITION
 	};
 
 	enum class RobomasMD{

@@ -9,9 +9,6 @@
 #include "usbd_cdc_if.h"
 #include "usb_device.h"
 
-#include "CommonLib/Math/filter.hpp"
-#include "CommonLib/Math/disturbance_observer.hpp"
-
 #include "CommonLib/fdcan_control.hpp"
 #include "CommonLib/gpio.hpp"
 #include "CommonLib/slcan.hpp"
@@ -57,7 +54,10 @@ namespace BoardElement{
 		uint8_t can_md_tx_buff[sizeof(Clib::RingBuffer<Clib::CanFrame,5>)];
 		uint8_t can_md_rx_buff[sizeof(Clib::RingBuffer<Clib::CanFrame,5>)];
 
-		uint8_t abs_enc[sizeof(BoardLib::AMT21xEnc)];
+		uint8_t abs_enc0[sizeof(BoardLib::AMT21xEnc)];
+		uint8_t abs_enc1[sizeof(BoardLib::AMT21xEnc)];
+		uint8_t abs_enc2[sizeof(BoardLib::AMT21xEnc)];
+		uint8_t abs_enc3[sizeof(BoardLib::AMT21xEnc)];
 	}
 
 	auto can_main = Clib::FdCanComm{
@@ -103,6 +103,7 @@ namespace BoardElement{
 			.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc) Blib::AMT21xEnc(&huart5)),false)
 			.build();
 
+
 	auto vesc = Blib::VescDataConverter{0};
 
 	auto usb_cdc = Clib::UsbCdcComm{&hUsbDeviceFS,
@@ -112,68 +113,14 @@ namespace BoardElement{
 
 }
 
-namespace Test{
-	auto sec_tim = Clib::InterruptionTimerHard{&htim17};
-
-	float target = 1.0f;
-	int16_t rm_val = 0;
-	auto vrm = BoardLib::VirtualRobomasMotor(1000.0f,2,MReg::RobomasMD::C610,0.0004,0.001);
-}
-
 namespace be = BoardElement;
 
 //メイン関数
 extern "C"{
 void cppmain(void){
-	auto fwr = Blib::G4FlashRW(FLASH_BANK_2,126,0x807F000);
-
-	const float dummy[] = {3.14,0.123,0.567};
-	fwr.write((uint8_t*)dummy, sizeof(dummy));
-	float read_buff[10] = {0};
-	fwr.read((uint8_t*)read_buff, sizeof(read_buff));
-	for(int i = 0; i < 3; i++){
-		printf("%d:%f\r\n",i,read_buff[i]);
-	}
-
-	HAL_Delay(1000);
-	//be::can_main.set_filter_free(0,Clib::CanFilterMode::ONLY_EXT);
-	be::can_main.set_filter(0,0x012,0x0FF,Clib::CanFilterMode::ONLY_STD);
-	be::can_main.start();
-
-	be::test_timer.set_task([](){
-		be::led2(true);
-		Test::rm_val = be::motor.get_current_can_format();
-		auto cf = Test::vrm(Test::rm_val);
-		be::motor.update(cf);
-		be::led2(false);
-		//be::md_state_led[2].update();
-	});
-
-	Test::sec_tim.set_task([](){
-		Test::target *= -1.0f;
-	});
-	be::test_timer.start_timer(0.001f);
-	Test::sec_tim.start_timer(1.0f);
-
-	be::motor.start_calibration();
-	while(be::motor.is_calibrating()){
-		be::md_state_led[2].play(Blib::LEDPattern::test,false);
-		printf("%d,%4.3f,%4.3f,%4.3f,%d\r\n",be::motor.get_motor_type(),be::motor.get_overwrited_rad(),be::motor.enc.get_rad_speed(),
-				be::motor.enc.get_torque(),Test::rm_val);
-		HAL_Delay(10);
-	}
-	printf("%f,%f\r\n",be::motor.dob.inverse_model.get_inertia(),be::motor.dob.inverse_model.get_friction_coef());
-
-	be::motor.overwrite_rad(0.0f);
-	be::motor.set_control_mode(MReg::ControlMode::POSITION);
-	be::motor.use_dob(true);
+	init();
 	while(1){
-		//be::md_state_led[2].play(Blib::LEDPattern::abs_speed_mode,false);
-		be::motor.set_target_rad(Test::target);
 
-		printf("%4.3f,%4.3f,%4.3f\r\n",be::motor.get_overwrited_rad(),be::motor.enc.get_rad_speed(),be::motor.enc.get_torque());
-
-		HAL_Delay(1);
 	}
 }
 

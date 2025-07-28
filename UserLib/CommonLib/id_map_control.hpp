@@ -27,7 +27,8 @@ namespace CommonLib{
 		//ref->byte
 		bool get(ByteWriter& w){ return f_get ? f_get(w) : false; }
 
-		template<class T> static DataAccessor generate(T* ref){
+		template<class T>
+		static DataAccessor generate(T* ref){
 			auto readf = [ref](ByteReader& r){
 				std::optional<T> val = r.read<T>();
 				if(val.has_value()){
@@ -44,7 +45,8 @@ namespace CommonLib{
 			return DataAccessor(readf,writef);
 		}
 
-		template<class T> static DataAccessor generate(std::function<void(T)> setter,std::function<T(void)> getter){
+		template<class T>
+		static DataAccessor generate(std::function<void(T)> setter,std::function<T(void)> getter){
 			auto readf = [setter](ByteReader& r){
 				std::optional<T> val = r.read<T>();
 				if(val.has_value()){
@@ -60,7 +62,9 @@ namespace CommonLib{
 			};
 			return DataAccessor(readf,writef);
 		}
-		template<class T> static DataAccessor generate(std::function<void(T)> setter){
+
+		template<class T>
+		static DataAccessor generate(std::function<void(T)> setter){
 			auto readf = [setter](ByteReader& r){
 				std::optional<T> val = r.read<T>();
 				if(val.has_value()){
@@ -72,7 +76,9 @@ namespace CommonLib{
 			};
 			return DataAccessor(readf,nullptr);
 		}
-		template<class T> static DataAccessor generate(std::function<T(void)> getter){
+
+		template<class T>
+		static DataAccessor generate(std::function<T(void)> getter){
 			auto writef = [getter](ByteWriter& w){
 				w.write(getter());
 				return true;
