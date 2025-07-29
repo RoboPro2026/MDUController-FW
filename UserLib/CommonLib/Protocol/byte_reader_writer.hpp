@@ -63,7 +63,7 @@ public:
 			iter += sizeof(T);
 		}else{
 			for(int i = sizeof(T)-1; i >= 0; i--){
-				memcpy(reinterpret_cast<uint8_t*>(&value),iter, 1);
+				memcpy(reinterpret_cast<uint8_t*>(&value)+ i,iter, 1);
 				iter += sizeof(uint8_t);
 			}
 		}

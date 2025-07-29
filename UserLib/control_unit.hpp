@@ -104,7 +104,36 @@ struct MotorUnit{
 						[&](float d)mutable{rm_motor.spd_pid.set_d_gain(d);},
 						[&]()->float{return rm_motor.spd_pid.get_d_gain();}))
 
+				.add(MReg::POS,CommonLib::DataAccessor::generate<float>(
+						[&]()->float{return rm_motor.enc.get_rad();}))
+				.add(MReg::POS_TARGET,CommonLib::DataAccessor::generate<float>(
+						[&](float s)mutable{rm_motor.set_target_rad(s);},
+						[&]()->float{return rm_motor.get_target_rad();}))
+				.add(MReg::SPD_LIM,CommonLib::DataAccessor::generate<float>(
+						[&](float l)mutable{rm_motor.pos_pid.set_limit(l);},
+						[&]()->float{auto [ll,lh] = rm_motor.pos_pid.get_limit(); return lh;}))
+				.add(MReg::POS_GAIN_P,CommonLib::DataAccessor::generate<float>(
+						[&](float p)mutable{rm_motor.pos_pid.set_p_gain(p);},
+						[&]()->float{return  rm_motor.pos_pid.get_p_gain();}))
+				.add(MReg::POS_GAIN_I,CommonLib::DataAccessor::generate<float>(
+						[&](float i)mutable{rm_motor.pos_pid.set_i_gain(i);},
+						[&]()->float{return rm_motor.pos_pid.get_i_gain();}))
+				.add(MReg::POS_GAIN_D,CommonLib::DataAccessor::generate<float>(
+						[&](float d)mutable{rm_motor.pos_pid.set_d_gain(d);},
+						[&]()->float{return rm_motor.pos_pid.get_d_gain();}))
 
+				.add(MReg::ABS_POS,CommonLib::DataAccessor::generate<float>(
+						[&]()->float{return rm_motor.abs_enc->get_rad();}))
+				.add(MReg::ABS_SPD,CommonLib::DataAccessor::generate<float>(
+						[&]()->float{return rm_motor.abs_enc->get_rad_speed();}))
+				.add(MReg::ABS_TURN_CNT,CommonLib::DataAccessor::generate<int32_t>(
+						[&](int32_t t)mutable{rm_motor.abs_enc->set_turn_count(t);},
+						[&]()->int32_t{return rm_motor.abs_enc->get_turn_count();}))
+
+				.add(MReg::VESC_MODE,CommonLib::DataAccessor::generate<int8_t>(
+						[&](int8_t m)mutable{vesc_motor.set_mode(static_cast<MReg::VescMode>(m));},
+						[&]()->int8_t{return static_cast<uint8_t>(vesc_motor.get_mode());}))
+				.add(MReg::VESC_TARGET,CommonLib::DataAccessor::generate<float>(&vesc_value))
 				.build()){
 	}
 };

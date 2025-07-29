@@ -63,7 +63,7 @@ namespace MDCRegister{
 
 	inline constexpr size_t POS             = 0x0030;
 	inline constexpr size_t POS_TARGET      = 0x0031;
-	inline constexpr size_t SPD_LIMIT       = 0x0032;
+	inline constexpr size_t SPD_LIM         = 0x0032;
 	inline constexpr size_t POS_GAIN_P      = 0x0033;
 	inline constexpr size_t POS_GAIN_I      = 0x0034;
 	inline constexpr size_t POS_GAIN_D      = 0x0035;
