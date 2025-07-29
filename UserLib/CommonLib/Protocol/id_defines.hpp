@@ -15,6 +15,7 @@ enum class DataType:size_t{
 	PCU_ID,
 	MDC_ID,
 	GPIO_ID,
+	MDC2_ID,
 	COMMON_ID_ENFORCE = 0xF
 };
 

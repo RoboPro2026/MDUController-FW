@@ -11,15 +11,9 @@
 #include "CommonLib/can_if.hpp"
 #include <cmath>
 #include <cassert>
+#include <optional>
 
 namespace BoardLib{
-
-enum class VescMode{
-	CURRENT,
-	SPEED,
-	POSITION,
-	PWM
-};
 
 //TODO:制作
 class VescDataConverter{
@@ -33,27 +27,31 @@ class VescDataConverter{
 	static constexpr float rad_spd_to_rpm_coef = 60.0f*1000.0f/(2*M_PI);
 	static constexpr float position_coef = 360.0f/(2*M_PI);
 
-	static CommonLib::CanFrame generate_frame(size_t m_id,VescMode m,float value){
+	static std::optional<CommonLib::CanFrame> generate_frame(size_t m_id,MReg::VescMode m,float value){
+
 		CommonLib::CanFrame cf;
 		cf.is_ext_id = true;
 		auto writer = cf.writer();
 		float converted_value;
 		switch(m){
-		case VescMode::CURRENT:
+		case MReg::VescMode::NOP:
+			return std::nullopt;
+		case MReg::VescMode::PWM:
+			cf.id = vesc_duty_id | m_id;
+			converted_value = value * duty_coef;
+			writer.write<int32_t>(static_cast<int32_t>(converted_value),false);
+			return cf;
+		case MReg::VescMode::CURRENT:
 			cf.id = vesc_current_id | m_id;
 			converted_value = value * current_coef;
 			break;
-		case VescMode::SPEED:
+		case MReg::VescMode::SPEED:
 			cf.id = vesc_rpm_id | m_id;
 			converted_value = value * rad_spd_to_rpm_coef;
 			break;
-		case VescMode::POSITION:
+		case MReg::VescMode::POSITION:
 			cf.id = vesc_position_id | m_id;
 			converted_value = value * position_coef;
-			break;
-		case VescMode::PWM:
-			cf.id = vesc_duty_id | m_id;
-			converted_value = value * duty_coef;
 			break;
 		}
 		writer.write<int32_t>(static_cast<int32_t>(converted_value),false);
@@ -61,42 +59,23 @@ class VescDataConverter{
 	}
 
 	const size_t motor_id;
-	VescMode mode;
+	MReg::VescMode mode;
 public:
-	VescDataConverter(size_t _motor_id,VescMode _mode = VescMode::PWM)
+	VescDataConverter(size_t _motor_id,MReg::VescMode _mode = MReg::VescMode::NOP)
 	:motor_id(_motor_id),
 	 mode(_mode){
 	}
 
-	void set_mode(VescMode m){
+	void set_mode(MReg::VescMode m){
 		mode = m;
 	}
-	VescMode get_mode(void)const{
+	MReg::VescMode get_mode(void)const{
 		return mode;
 	}
 
-	CommonLib::CanFrame generate_frame(float value){
+	std::optional<CommonLib::CanFrame> generate_frame(float value){
 		return generate_frame(motor_id,mode,value);
 	}
-
-	CommonLib::CanFrame generate_set_duty_frame(float duty){
-		assert(-1.0f<duty && duty<1.0f);
-		return generate_frame(motor_id,mode,duty);
-	}
-	CommonLib::CanFrame generate_set_current_frame(float current_A){
-		return generate_frame(motor_id,mode,current_A);
-	}
-	CommonLib::CanFrame generate_set_speed_frame(float speed_rad){
-		return generate_frame(motor_id,mode,speed_rad);
-	}
-	CommonLib::CanFrame generate_set_position_frame(float position_rad){
-		return generate_frame(motor_id,mode,position_rad);
-	}
-
-
-
-
-
 };
 }
 

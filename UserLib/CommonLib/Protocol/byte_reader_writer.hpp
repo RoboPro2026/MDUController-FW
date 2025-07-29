@@ -31,13 +31,13 @@ class ByteWriter{
 		if (written_size+begin+sizeof(T) > end){
 			return false;
 		}
+		const uint8_t* src_bytes = reinterpret_cast<const uint8_t*>(&value);
 		if(little_endian){
-			memcpy(begin+written_size, &value,sizeof(T));
+			memcpy(begin+written_size, src_bytes,sizeof(T));
 			written_size += sizeof(T);
 		}else{
-			for(int i = sizeof(T)-1; i >= 0; i--){
-				begin[written_size] = value >> (i*8) & 0xFF;
-				written_size ++;
+			for (size_t i = 0; i < sizeof(T); ++i) {
+				begin[written_size + i] = src_bytes[sizeof(T) - 1 - i];
 			}
 		}
 		return true;
@@ -63,7 +63,7 @@ public:
 			iter += sizeof(T);
 		}else{
 			for(int i = sizeof(T)-1; i >= 0; i--){
-				memcpy(&value + i,iter, 1);
+				memcpy(reinterpret_cast<uint8_t*>(&value),iter, 1);
 				iter += sizeof(uint8_t);
 			}
 		}

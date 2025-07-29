@@ -103,6 +103,11 @@ namespace BoardLib::LEDPattern{
 
 		CommonLib::end_of_io_sequence
 	};
+
+	const CommonLib::Note* led_mode_indicate[2][3]={
+			{BoardLib::LEDPattern::pwm_mode,BoardLib::LEDPattern::speed_mode,BoardLib::LEDPattern::position_mode},
+			{BoardLib::LEDPattern::abs_pwm_mode,BoardLib::LEDPattern::abs_speed_mode,BoardLib::LEDPattern::abs_position_mode}
+	};
 }
 
 

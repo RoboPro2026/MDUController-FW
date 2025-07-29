@@ -78,15 +78,15 @@ public:
 		enc.set_motor_type(m_type);
 	}
 	MReg::RobomasMD get_motor_type(void) const {return motor_type;}
-	void estimate_motor_type(void){estimate_motor_type_f = true;}
+	void estimate_motor_type(bool enable = true){estimate_motor_type_f = enable;}
 
 	void set_control_mode(MReg::ControlMode _mode);
 	MReg::ControlMode get_control_mode(void)const{ return mode; }
 
-	void use_abs_enc(bool _using_abs_enc){ using_abs_enc = abs_enc->is_dead() ? false : _using_abs_enc; }
+	void use_abs_enc(bool _using_abs_enc = true){ using_abs_enc = abs_enc->is_dead() ? false : _using_abs_enc; }
 	bool is_using_abs_enc(void)const{return using_abs_enc;}
 
-	void use_dob(bool dob_en){dob_enable = dob_en;}
+	void use_dob(bool dob_en = true){dob_enable = dob_en;}
 	bool is_using_dob(void)const {return dob_enable;}
 
 	void  set_torque(float _torque){torque = _torque;}
@@ -160,7 +160,6 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 		if(abs_enc->is_dead()){
 			using_abs_enc = false;
 		}
-		abs_enc->read_start();
 	}else{
 		using_abs_enc = false;
 	}

@@ -18,10 +18,14 @@ public:
 	IABSEncoder(size_t _resolution_bit,float update_freq,float gear_ratio = 1.0f)
 	:ContinuableEncoder(_resolution_bit,update_freq,gear_ratio){
 	}
+	enum class Context{
+		SUCCESS,
+		FAILURE
+	};
 	virtual bool is_ready(void)const = 0;
 	virtual bool is_dead(void)const = 0;
 	virtual void read_start(void) = 0;
-	virtual void read_finish_task(int context) = 0;
+	virtual void read_finish_task(Context c = Context::SUCCESS) = 0;
 	virtual ~IABSEncoder(){}
 };
 
@@ -77,7 +81,7 @@ public:
 	}
 
 	//HAL_UART_RxCpltCallback内におくこと
-	void read_finish_task(int context = 0)override{
+	void read_finish_task(Context c = Context::SUCCESS)override{
 		uint16_t raw_angle = enc_val[1]<<8 | enc_val[0];
 		update(raw_angle);
 		no_responce = false;
@@ -107,7 +111,7 @@ private:
 public:
 	AS5600State(I2C_HandleTypeDef* _i2c,float update_freq,float gear_ratio = 1.0f)
 		:i2c(_i2c),
-		 IABSEncoder::ContinuableEncoder(as5600_resolution,update_freq,gear_ratio),
+		 IABSEncoder(as5600_resolution,update_freq,gear_ratio),
 		 new_data_available(false),
 		 no_responce(false){
 	}
@@ -131,8 +135,8 @@ public:
 
 	//HAL_I2C_MemRxCpltCallbackで呼び出すこと(context = 0)
 	//HAL_I2C_ErrorCallbackの場合context = 1
-	void read_finish_task(int context)override{//通常の
-		if(context == 0){
+	void read_finish_task(Context c = Context::SUCCESS)override{//通常の
+		if(c == Context::SUCESS){
 			uint16_t raw_angle = enc_val[0]<<8 | enc_val[1];
 			update(raw_angle);
 			new_data_available = true;

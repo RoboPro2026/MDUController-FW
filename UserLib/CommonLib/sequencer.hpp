@@ -45,7 +45,7 @@ namespace CommonLib{
 
 		//pattern:実行するシーケンス，force:すでに別のシーケンスが走っている場合に上書きして実行するか
 		bool play(const Note *pattern,bool force = false){
-			if(is_playing() && not force){
+			if(is_playing() and (not force)){
 				return false;
 			}
 			playing_pattern = pattern;
