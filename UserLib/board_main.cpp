@@ -117,15 +117,11 @@ namespace Task{
 		}
 
 		if(dp.is_request){
-			Clib::Protocol::DataPacket return_packet;
+			Clib::Protocol::DataPacket return_packet = dp;
+			return_packet.data_length = 0;
+			return_packet.is_request = false;
 			auto w = return_packet.writer();
 			be::motor[motor_id].id_map.get(dp.register_ID & 0x00FF, w);
-
-			return_packet.priority = dp.priority;
-			return_packet.data_type = dp.data_type;
-			return_packet.board_ID = dp.board_ID;
-			return_packet.register_ID = dp.register_ID;
-			return_packet.is_request = false;
 
 			return return_packet;
 		}else{
@@ -228,7 +224,6 @@ namespace Task{
 //メイン関数
 extern "C"{
 void cppmain(void){
-
 	be::can_main.set_filter(0, 0x0040'0000 | be::board_id, 0x00FF'0000,Clib::CanFilterMode::ONLY_EXT);
 	be::can_main.start();
 	be::can_md.set_filter_free(0,Clib::CanFilterMode::ONLY_STD);
@@ -267,6 +262,7 @@ int _write(int file, char *ptr, int len) {
 
 void usb_cdc_rx_callback(const uint8_t *input,size_t size){
 	be::usb_cdc.rx_interrupt_task(input, size);
+	be::led_b_sequencer.play(Blib::LEDPattern::ok);
 }
 
 }//extern "C"
@@ -289,11 +285,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	}
 }
 
-//can
+//メイン通信用
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs){
 	be::can_main.rx_interrupt_task();
-	be::led_g_sequencer.play(Blib::LEDPattern::ok);
+	be::led_b_sequencer.play(Blib::LEDPattern::ok);
 }
+//ロボマス用
 void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs){
 	be::can_md.rx_interrupt_task();
 	auto rx_frame = be::can_md.rx();

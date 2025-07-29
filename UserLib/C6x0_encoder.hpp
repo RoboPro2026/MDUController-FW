@@ -23,11 +23,12 @@ namespace BoardLib{
 		int16_t current = 0;
 		int8_t temperature = 0;
 
-		CommonLib::Math::LowpassFilterBD<float> i_lpf = CommonLib::Math::LowpassFilterBD<float>{1000.0f,50.0f};
+		CommonLib::Math::LowpassFilterBD<float> i_lpf;
 	public:
-		C6x0Enc(MReg::RobomasMD _m_type,float update_freq = 1000.0f)
+		C6x0Enc(MReg::RobomasMD _m_type,float update_freq = 1000.0f,float i_lpf_cutoff = 50.0f)
 		:CommonLib::ContinuableEncoder(13,update_freq,RobomasMotorParam::get_gear_ratio(_m_type)),
-		 m_type(_m_type){
+		 m_type(_m_type),
+		 i_lpf(update_freq,i_lpf_cutoff){
 		}
 
 		void set_motor_type(MReg::RobomasMD _m_type){
