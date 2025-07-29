@@ -42,7 +42,9 @@ private:
 	UART_HandleTypeDef* uart;
 	std::unique_ptr<IRingBuffer<StrPack>> rx_buff;
 
-	uint8_t rx_tmp_byte;
+	StrPack tx_packet;
+
+	uint8_t rx_tmp_byte = 0;
 	StrPack rx_tmp_packet;
 
 	bool is_transmitting = false;
@@ -61,7 +63,9 @@ public:
 		if(is_transmitting){
 			return false;
 		}else{
-			HAL_UART_Transmit_IT(uart, reinterpret_cast<uint8_t*>(const_cast<char*>(data.data)), data.size);
+			tx_packet = data; //効率的にはHAL_UART_Transmit_ITの仕様上クラス内で保持しないとデータが死ぬ
+
+			HAL_UART_Transmit_IT(uart, reinterpret_cast<uint8_t*>(tx_packet.data), tx_packet.size);
 			is_transmitting = true;
 			return true;
 		}

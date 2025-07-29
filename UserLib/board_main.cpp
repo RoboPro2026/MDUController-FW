@@ -79,9 +79,14 @@ namespace BoardElement{
 		Clib::FdCanRxFifo1
 	};
 
-	auto usb_cdc = Clib::UsbCdcComm{&hUsbDeviceFS,
-		std::unique_ptr<Clib::RingBuffer<Clib::StrPack,5>>(
-				new(TmpMemoryPool::usb_rx_buff) Clib::RingBuffer<Clib::StrPack,5>{}),
+//	auto usb_cdc = Clib::UsbCdcComm{&hUsbDeviceFS,
+//		std::unique_ptr<Clib::RingBuffer<Clib::StrPack,5>>(
+//				new(TmpMemoryPool::usb_rx_buff) Clib::RingBuffer<Clib::StrPack,5>{}),
+//		std::unique_ptr<Clib::RingBuffer<Clib::StrPack,5>>(
+//				new(TmpMemoryPool::usb_tx_buff) Clib::RingBuffer<Clib::StrPack,5>{}),
+//	};
+
+	auto usb_uart = Clib::UartComm{&huart2,
 		std::unique_ptr<Clib::RingBuffer<Clib::StrPack,5>>(
 				new(TmpMemoryPool::usb_tx_buff) Clib::RingBuffer<Clib::StrPack,5>{}),
 	};
@@ -99,7 +104,8 @@ namespace BoardElement{
 			Blib::MotorUnit(0,LED0_GPIO_Port,LED0_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5))),
 			Blib::MotorUnit(1,LED1_GPIO_Port,LED1_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3))),
 			Blib::MotorUnit(2,LED2_GPIO_Port,LED2_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1))),
-			Blib::MotorUnit(3,LED3_GPIO_Port,LED3_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)))
+			//Blib::MotorUnit(3,LED3_GPIO_Port,LED3_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)))
+			Blib::MotorUnit(3,LED3_GPIO_Port,LED3_Pin,nullptr)
 	};
 }
 
@@ -121,12 +127,15 @@ namespace Task{
 			return_packet.data_length = 0;
 			return_packet.is_request = false;
 			auto w = return_packet.writer();
-			be::motor[motor_id].id_map.get(dp.register_ID & 0x00FF, w);
-
-			return return_packet;
+			if(be::motor[motor_id].id_map.get(dp.register_ID & 0x00FF, w)){
+				return return_packet;
+			}else{
+				return std::nullopt;
+			}
 		}else{
 			auto r = dp.reader();
 			be::motor[motor_id].id_map.set(dp.register_ID & 0x00FF, r);
+
 			return std::nullopt;
 		}
 	}
@@ -167,7 +176,7 @@ namespace Task{
 	}
 
 	void usb_task(){
-		auto rx_str = be::usb_cdc.rx();
+		auto rx_str = be::usb_uart.rx();//be::usb_cdc.rx();
 		if(not rx_str.has_value()) return;
 
 		Clib::CanFrame rx_frame = Clib::SLCAN::slcan_packed_to_can(rx_str.value());
@@ -192,7 +201,9 @@ namespace Task{
 			Clib::CanFrame tx_frame;
 			tx_frame.decode_common_data_packet(return_pack.value());
 			Clib::StrPack tx_str = Clib::SLCAN::can_to_slcan_packed(tx_frame);
-			be::usb_cdc.tx(tx_str);
+
+			//be::usb_cdc.tx(tx_str);
+			be::usb_uart.tx(tx_str);
 		}
 	}
 
@@ -215,7 +226,7 @@ namespace Task{
 		for(auto &m:be::motor){
 			auto tx_frame = m.vesc_motor.generate_frame(m.vesc_value);
 			if(tx_frame.has_value()){
-				be::can_main.tx(tx_frame.value());
+				be::can_md.tx(tx_frame.value());
 			}
 		}
 	}
@@ -229,6 +240,8 @@ void cppmain(void){
 	be::can_md.set_filter_free(0,Clib::CanFilterMode::ONLY_STD);
 	be::can_md.start();
 
+	be::usb_uart.rx_start();
+
 	be::tim_1khz.set_task([](){
 		Task::can_transmit_to_robomas_motor();
 		Task::can_transmit_to_vesc();
@@ -238,6 +251,7 @@ void cppmain(void){
 		be::led_b_sequencer.update();
 
 		for(auto& m:be::motor){
+			m.led_sequence.update();
 			if(m.rm_motor.abs_enc){
 				m.rm_motor.abs_enc->read_start();
 			}
@@ -261,7 +275,7 @@ int _write(int file, char *ptr, int len) {
 }
 
 void usb_cdc_rx_callback(const uint8_t *input,size_t size){
-	be::usb_cdc.rx_interrupt_task(input, size);
+	//be::usb_cdc.rx_interrupt_task(input, size);
 	be::led_b_sequencer.play(Blib::LEDPattern::ok);
 }
 
@@ -281,7 +295,19 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	}else if(huart == &hlpuart1){
 		be::motor[2].rm_motor.abs_enc->read_finish_task();
 	}else if(huart == &huart2){
-		be::motor[3].rm_motor.abs_enc->read_finish_task();
+		//be::motor[3].rm_motor.abs_enc->read_finish_task();
+		be::usb_uart.rx_interrupt_task();
+	}
+}
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
+	if(huart == &huart5){
+
+	}else if(huart == &huart3){
+
+	}else if(huart == &hlpuart1){
+
+	}else if(huart == &huart2){
+		be::usb_uart.tx_interrupt_task();
 	}
 }
 
@@ -295,9 +321,11 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
 	be::can_md.rx_interrupt_task();
 	auto rx_frame = be::can_md.rx();
 	if(rx_frame.has_value()){
-		int id = rx_frame.value().id - 0x201;
-		be::motor.at(id).rm_motor.update(rx_frame.value());
-		be::motor.at(id).led_sequence.update();
+		size_t id = rx_frame.value().id - 0x201;
+		if(id <= 3){
+			be::motor[id].rm_motor.update(rx_frame.value());
+			be::motor[id].led_sequence.update();
+		}
 	}
 }
 
