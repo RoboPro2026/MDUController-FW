@@ -83,7 +83,9 @@ public:
 	void set_control_mode(MReg::ControlMode _mode);
 	MReg::ControlMode get_control_mode(void)const{ return mode; }
 
-	void use_abs_enc(bool _using_abs_enc = true){ using_abs_enc = abs_enc->is_dead() ? false : _using_abs_enc; }
+	void use_abs_enc(bool _using_abs_enc = true){
+		if(abs_enc) using_abs_enc = abs_enc->is_dead() ? false : _using_abs_enc;
+	}
 	bool is_using_abs_enc(void)const{return using_abs_enc;}
 
 	void use_dob(bool dob_en = true){dob_enable = dob_en;}

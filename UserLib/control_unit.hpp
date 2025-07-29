@@ -32,12 +32,14 @@ struct MotorUnit{
 	CommonLib::GPIO led;
 	CommonLib::Sequencer led_sequence;
 
-	CommonLib::IDMap id_map;
-
 	const CommonLib::Note* led_playing_pattern;
+
+	CommonLib::IDMap id_map;
 
 	void set_control_mode(uint8_t c_val){
 		MReg::ControlMode mode = static_cast<MReg::ControlMode>(c_val&0b11);
+		if(static_cast<size_t>(mode) == 0b11) return;
+
 		MReg::RobomasMD md = static_cast<MReg::RobomasMD>((c_val >> 2) & 0b1);
 		bool use_abs_enc = ((c_val >> 4)&0b1) == 0b1;
 		bool use_dob = ((c_val >> 5)&0b1) == 0b1;
@@ -57,6 +59,7 @@ struct MotorUnit{
 		vesc_motor(id),
 		led(led_port,led_pin),
 		led_sequence([&](float v){led(v>0.0f);}),
+		led_playing_pattern(BoardLib::LEDPattern::led_mode_indicate[0][0]),
 		id_map(CommonLib::IDMapBuilder()
 				.add(MReg::MOTOR_STATE,    CommonLib::DataAccessor::generate<bool>(&is_active))
 				.add(MReg::CONTROL,        CommonLib::DataAccessor::generate<uint8_t>(
@@ -133,6 +136,8 @@ struct MotorUnit{
 						[&]()->int8_t{return static_cast<uint8_t>(vesc_motor.get_mode());}))
 				.add(MReg::VESC_TARGET,    CommonLib::DataAccessor::generate<float>(&vesc_value))
 				.build()){
+
+		set_control_mode(0b0000'0000);
 	}
 };
 
