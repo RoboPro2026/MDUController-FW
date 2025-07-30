@@ -51,47 +51,53 @@ namespace BoardLib::LEDPattern{
 	};
 
 	inline const CommonLib::Note pwm_mode[] = {
+		{0.0,  1},
 		{1.0,100},
-		{0.0,1900},
+		{0.0,1899},
 		CommonLib::end_of_io_sequence
 	};
 	inline const CommonLib::Note speed_mode[] = {
+		{0.0f,  1},
 		{1.0f,100},
 		{0.0f,100},
 		{1.0f,100},
-		{0.0f,1700},
+		{0.0f,1699},
 
 		CommonLib::end_of_io_sequence
 	};
 	inline const CommonLib::Note position_mode[] = {
+		{0.0f,1},
 		{1.0f,100},
 		{0.0f,100},
 		{1.0f,100},
 		{0.0f,100},
 		{1.0f,100},
-		{0.0f,1500},
+		{0.0f,1499},
 
 		CommonLib::end_of_io_sequence
 	};
 
 	inline const CommonLib::Note abs_pwm_mode[] = {
+		{0.0f,1},
 		{1.0,500},
 		{0.0,100},
 		{1.0,100},
-		{0.0,1300},
+		{0.0,1299},
 		CommonLib::end_of_io_sequence
 	};
 	inline const CommonLib::Note abs_speed_mode[] = {
+		{0.0f,  1},
 		{1.0f,500},
 		{0.0f,100},
 		{1.0f,100},
 		{0.0f,100},
 		{1.0f,100},
-		{0.0f,1100},
+		{0.0f,1099},
 
 		CommonLib::end_of_io_sequence
 	};
 	inline const CommonLib::Note abs_position_mode[] = {
+		{0.0f,  1},
 		{1.0f,500},
 		{0.0f,100},
 		{1.0f,100},
@@ -99,7 +105,7 @@ namespace BoardLib::LEDPattern{
 		{1.0f,100},
 		{0.0f,100},
 		{1.0f,100},
-		{0.0f,900},
+		{0.0f,899},
 
 		CommonLib::end_of_io_sequence
 	};

@@ -41,8 +41,8 @@ struct MotorUnit{
 		if(static_cast<size_t>(mode) == 0b11) return;
 
 		MReg::RobomasMD md = static_cast<MReg::RobomasMD>((c_val >> 2) & 0b1);
-		bool use_abs_enc = ((c_val >> 4)&0b1) == 0b1;
-		bool use_dob = ((c_val >> 5)&0b1) == 0b1;
+		bool use_dob = ((c_val >> 4)&0b1) == 0b1;
+		bool use_abs_enc = ((c_val >> 5)&0b1) == 0b1;
 		bool est_m_type = ((c_val >> 5)&0b1) == 0b1;
 
 		rm_motor.set_control_mode(mode);
@@ -50,8 +50,17 @@ struct MotorUnit{
 		rm_motor.use_abs_enc(use_abs_enc);
 		rm_motor.use_dob(use_dob);
 		rm_motor.estimate_motor_type(est_m_type);
+	}
 
-		led_playing_pattern = BoardLib::LEDPattern::led_mode_indicate[use_abs_enc ? 1 : 0][static_cast<size_t>(mode)];
+	void update_led_pattern(void){
+		led_sequence.play(BoardLib::LEDPattern::led_mode_indicate[rm_motor.is_using_abs_enc() ? 1 : 0][static_cast<size_t>(rm_motor.get_control_mode())]);
+	}
+
+	uint8_t get_control_mode(void)const{
+		return static_cast<uint8_t>(rm_motor.get_control_mode())
+				| (static_cast<uint8_t>(rm_motor.get_motor_type()) << 2)
+				| (rm_motor.is_using_dob()?0b0001'0000:0)
+				| (rm_motor.is_using_abs_enc()?0b0010'0000:0);
 	}
 
 	MotorUnit(int id,GPIO_TypeDef *led_port,uint_fast16_t led_pin,std::unique_ptr<BoardLib::IABSEncoder> abs_enc):
@@ -63,7 +72,8 @@ struct MotorUnit{
 		id_map(CommonLib::IDMapBuilder()
 				.add(MReg::MOTOR_STATE,    CommonLib::DataAccessor::generate<bool>(&is_active))
 				.add(MReg::CONTROL,        CommonLib::DataAccessor::generate<uint8_t>(
-						[&](uint8_t v)mutable{set_control_mode(v);}))
+						[&](uint8_t v)mutable{set_control_mode(v);},
+						[&]()->uint8_t{return get_control_mode();}))
 				.add(MReg::ABS_GEAR_RATIO, CommonLib::DataAccessor::generate<bool>(
 						[&](float r)mutable{rm_motor.abs_enc->set_gear_ratio(r);},
 						[&]()->float{return rm_motor.abs_enc->get_gear_ratio();}))
@@ -106,7 +116,8 @@ struct MotorUnit{
 						[&]()->float{return rm_motor.spd_pid.get_d_gain();}))
 
 				.add(MReg::POS,            CommonLib::DataAccessor::generate<float>(
-						[&]()->float{return rm_motor.enc.get_rad();}))
+						[&](float r)mutable{rm_motor.overwrite_rad(r);},
+						[&]()->float{return rm_motor.get_overwrited_rad();}))
 				.add(MReg::POS_TARGET,     CommonLib::DataAccessor::generate<float>(
 						[&](float s)mutable{rm_motor.set_target_rad(s);},
 						[&]()->float{return rm_motor.get_target_rad();}))
