@@ -34,12 +34,12 @@ class ByteWriter{
 		const uint8_t* src_bytes = reinterpret_cast<const uint8_t*>(&value);
 		if(little_endian){
 			memcpy(begin+written_size, src_bytes,sizeof(T));
-			written_size += sizeof(T);
 		}else{
-			for (size_t i = 0; i < sizeof(T); ++i) {
+			for (size_t i = 0; i < sizeof(T); i++) {
 				begin[written_size + i] = src_bytes[sizeof(T) - 1 - i];
 			}
 		}
+		written_size += sizeof(T);
 		return true;
 	}
 };

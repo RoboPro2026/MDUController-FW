@@ -103,11 +103,10 @@ namespace BoardElement{
 	auto tim_1khz = Clib::InterruptionTimerHard{&htim15};
 
 	auto motor = std::array<Blib::MotorUnit,4>{
-			Blib::MotorUnit(0,LED0_GPIO_Port,LED0_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5))),
-			Blib::MotorUnit(1,LED1_GPIO_Port,LED1_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3))),
-			Blib::MotorUnit(2,LED2_GPIO_Port,LED2_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1))),
-			Blib::MotorUnit(3,LED3_GPIO_Port,LED3_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)))
-			//Blib::MotorUnit(3,LED3_GPIO_Port,LED3_Pin,nullptr)
+		Blib::MotorUnit(0,LED0_GPIO_Port,LED0_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5))),
+		Blib::MotorUnit(1,LED1_GPIO_Port,LED1_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3))),
+		Blib::MotorUnit(2,LED2_GPIO_Port,LED2_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1))),
+		Blib::MotorUnit(3,LED3_GPIO_Port,LED3_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)))
 	};
 }
 
@@ -215,9 +214,15 @@ namespace Task{
 	void can_transmit_to_robomas_motor(void){
 		Clib::CanFrame tx_frame;
 		tx_frame.id = 0x200;
+
+//		int16_t p = be::motor[2].rm_motor.get_current_can_format();
+//		tx_frame.data[4] = p >>8;
+//		tx_frame.data[5] = p&0xFF;
+//		tx_frame.data_length = 8;
 		auto w = tx_frame.writer();
 		for(auto &m:be::motor){
-			w.write<int16_t>(m.rm_motor.get_current_can_format());
+			int16_t power = m.rm_motor.get_current_can_format();
+			w.write<int16_t>(power,false);
 		}
 		be::can_md.tx(tx_frame);
 	}
@@ -267,7 +272,6 @@ void cppmain(void){
 		be::led_b_sequencer.update();
 
 		for(auto& m:be::motor){
-			m.led_sequence.update();
 			if(m.rm_motor.abs_enc){
 				m.rm_motor.abs_enc->read_start();
 			}
@@ -280,8 +284,6 @@ void cppmain(void){
 	be::led_g_sequencer.play(Blib::LEDPattern::setting);
 	be::led_b_sequencer.play(Blib::LEDPattern::setting);
 
-	//be::motor[2].rm_motor.set_control_mode(MReg::ControlMode::SPEED);
-	//be::motor[2].set_control_mode(0b0000'0001);
 	while(1){
 		be::led_g_sequencer.play(Blib::LEDPattern::test);
 		Task::can_main_task();
@@ -306,7 +308,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 		be::motor[2].rm_motor.abs_enc->read_finish_task();
 	}else if(huart == &huart2){
 		be::motor[3].rm_motor.abs_enc->read_finish_task();
-		//be::usb_uart.rx_interrupt_task();
 	}
 }
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
@@ -317,7 +318,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 	}else if(huart == &hlpuart1){
 
 	}else if(huart == &huart2){
-		//be::usb_uart.tx_interrupt_task();
+
 	}
 }
 
@@ -326,16 +327,17 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 	be::can_main.rx_interrupt_task();
 	be::led_b_sequencer.play(Blib::LEDPattern::ok);
 }
+
 //ロボマス用
 void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs){
 	be::can_md.rx_interrupt_task();
 	auto rx_frame = be::can_md.rx();
-	if(rx_frame.has_value()){
-		size_t id = rx_frame.value().id - 0x201;
-		if(id <= 3){
-			if(be::motor[id].rm_motor.update(rx_frame.value())){
-				be::motor[id].led_sequence.update();
-			}
+	if(not rx_frame.has_value()) return;
+
+	size_t id = rx_frame.value().id - 0x201;
+	if(id <= 3){
+		if(be::motor[id].rm_motor.update(rx_frame.value())){
+			be::motor[id].led_sequence.update();
 		}
 	}
 }

@@ -123,7 +123,6 @@ inline void C6x0Controller::set_control_mode(MReg::ControlMode _mode){
 	}
 
 	target_rad = using_abs_enc ? abs_enc->get_rad(): enc.get_rad();
-	target_rad = 0.0f;
 	target_speed = 0.0f;
 	spd_pid.reset();
 	pos_pid.reset();
