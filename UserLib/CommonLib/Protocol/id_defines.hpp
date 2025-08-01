@@ -19,23 +19,31 @@ enum class DataType:size_t{
 	COMMON_ID_ENFORCE = 0xF
 };
 
+namespace CommonRegister{
+	inline constexpr size_t NOP             = 0x0000;
+	inline constexpr size_t ID_RQ           = 0x0001;
+	inline constexpr size_t SAVE_PARAM      = 0x0002;
+	inline constexpr size_t EMS             = 0x000E;
+	inline constexpr size_t RESET_EMS       = 0x000F;
+}
+
 namespace PCURegister{
-	inline constexpr size_t NOP = 0x0000;
-	inline constexpr size_t PCU_STATE = 0x0001;
-	inline constexpr size_t CELL_N = 0x0002;
-	inline constexpr size_t EX_EMS_TRG = 0x0003;
-	inline constexpr size_t EMS_RQ = 0x0004;
-	inline constexpr size_t COMMON_EMS_EN = 0x0005;
+	inline constexpr size_t NOP             = 0x0000;
+	inline constexpr size_t PCU_STATE       = 0x0001;
+	inline constexpr size_t CELL_N          = 0x0002;
+	inline constexpr size_t EX_EMS_TRG      = 0x0003;
+	inline constexpr size_t EMS_RQ          = 0x0004;
+	inline constexpr size_t COMMON_EMS_EN   = 0x0005;
 
-	inline constexpr size_t BATT_V = 0x0010;
-	inline constexpr size_t V_LIMIT_HIGH = 0x0011;
-	inline constexpr size_t V_LIMIT_LOW = 0x0012;
+	inline constexpr size_t BATT_V          = 0x0010;
+	inline constexpr size_t V_LIMIT_HIGH    = 0x0011;
+	inline constexpr size_t V_LIMIT_LOW     = 0x0012;
 
-	inline constexpr size_t BATT_I = 0x0020;
-	inline constexpr size_t I_LIMIT = 0x0021;
+	inline constexpr size_t BATT_I          = 0x0020;
+	inline constexpr size_t I_LIMIT         = 0x0021;
 
-	inline constexpr size_t MONITOR_PERIOD = 0x00F0;
-	inline constexpr size_t MONITOR_REG = 0x00F1;
+	inline constexpr size_t MONITOR_PERIOD  = 0x00F0;
+	inline constexpr size_t MONITOR_REG     = 0x00F1;
 }
 
 namespace MDCRegister{
@@ -115,6 +123,7 @@ namespace GPIORegister{
 
 } //namespace CommonLib::Protocol
 
+namespace CReg = CommonLib::Protocol::CommonRegister;
 namespace PReg = CommonLib::Protocol::PCURegister;
 namespace MReg = CommonLib::Protocol::MDCRegister;
 namespace GReg = CommonLib::Protocol::GPIORegister;
