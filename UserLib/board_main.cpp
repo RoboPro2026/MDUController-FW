@@ -215,10 +215,6 @@ namespace Task{
 		Clib::CanFrame tx_frame;
 		tx_frame.id = 0x200;
 
-//		int16_t p = be::motor[2].rm_motor.get_current_can_format();
-//		tx_frame.data[4] = p >>8;
-//		tx_frame.data[5] = p&0xFF;
-//		tx_frame.data_length = 8;
 		auto w = tx_frame.writer();
 		for(auto &m:be::motor){
 			int16_t power = m.rm_motor.get_current_can_format();
