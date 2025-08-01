@@ -34,6 +34,9 @@ struct MotorUnit{
 
 	const CommonLib::Note* led_playing_pattern;
 
+	std::shared_ptr<CommonLib::InterruptionTimerHard> timeout_tim;
+	std::shared_ptr<CommonLib::InterruptionTimerHard> monitor_tim;
+
 	CommonLib::IDMap id_map;
 
 	void set_control_mode(uint8_t c_val){
@@ -63,6 +66,15 @@ struct MotorUnit{
 				| (rm_motor.is_using_abs_enc()?0b0010'0000:0);
 	}
 
+	uint8_t mode_tmp = 0;
+	void emergency_stop(void){
+		mode_tmp = get_control_mode();
+		set_control_mode(0);
+	}
+	void emergency_stop_release(void){
+		set_control_mode(mode_tmp);
+	}
+
 	MotorUnit(int id,GPIO_TypeDef *led_port,uint_fast16_t led_pin,std::unique_ptr<BoardLib::IABSEncoder> abs_enc):
 		rm_motor(C6x0ControllerBuilder(id,MReg::RobomasMD::C610).set_abs_enc(std::move(abs_enc), false).build()),
 		vesc_motor(id),
@@ -88,8 +100,13 @@ struct MotorUnit{
 						[&]()->float{return rm_motor.dob.inverse_model.get_friction_coef();}))
 				.add(MReg::DOB_CF,         CommonLib::DataAccessor::generate<float>(
 						[&](float f)mutable{rm_motor.dob.set_lpf_cutoff_freq(f);}))
-//				.add(MReg::CAN_TIMEOUT,    CommonLib::DataAccessor::generate<float>(
-//						[&](float f)mutable{rm_motor.dob.set_lpf_cutoff_freq(f);}))
+
+				.add(MReg::CAN_TIMEOUT,    CommonLib::DataAccessor::generate<uint16_t>(
+						[&](uint16_t p)mutable{
+							if(timeout_tim){
+								timeout_tim->start_timer(p==0 ? -1.0f : static_cast<float>(p)*0.001);
+							}
+						}))
 
 				.add(MReg::TRQ,            CommonLib::DataAccessor::generate<float>(
 						[&]()->float{return rm_motor.enc.get_torque();}))
@@ -146,6 +163,14 @@ struct MotorUnit{
 						[&](int8_t m)mutable{vesc_motor.set_mode(static_cast<MReg::VescMode>(m));},
 						[&]()->int8_t{return static_cast<uint8_t>(vesc_motor.get_mode());}))
 				.add(MReg::VESC_TARGET,    CommonLib::DataAccessor::generate<float>(&vesc_value))
+				
+				.add(MReg::MONITOR_PERIOD, CommonLib::DataAccessor::generate<uint16_t>(
+						[&](uint16_t p)mutable{
+							if(monitor_tim){
+								monitor_tim->start_timer(p==0 ? -1.0f : static_cast<float>(p)*0.001);
+							}
+						}))
+				
 				.build()){
 
 		set_control_mode(0b0000'0000);
