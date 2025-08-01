@@ -102,6 +102,10 @@ namespace BoardElement{
 
 	auto tim_1khz = Clib::InterruptionTimerHard{&htim15};
 
+	//TODO:iocファイルの設定が古いかもしれないので確認
+	auto tim_can_timeout = std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_can_timeout) Clib::InterruptionTimerHard(&htim16)};
+	auto tim_monitor= std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_monitor) Clib::InterruptionTimerHard(&htim17)};
+
 	auto motor = std::array<Blib::MotorUnit,4>{
 		Blib::MotorUnit(0,LED0_GPIO_Port,LED0_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5))),
 		Blib::MotorUnit(1,LED1_GPIO_Port,LED1_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3))),
@@ -141,7 +145,34 @@ namespace Task{
 		}
 	}
 	std::optional<Clib::Protocol::DataPacket> common_data_operation(const Clib::Protocol::DataPacket& dp){
-		//TODO:書く
+		//TODO:動作チェック
+		Clib::Protocol::DataPacket return_packet = dp;
+
+		switch(dp.register_ID){
+		case CReg::ID_RQ:
+			if(dp.is_request){
+				return_packet.board_ID = be::board_id;
+				return_packet.data_type = Clib::Protocol::DataType::COMMON_ID;
+				return_packet.register_ID = CReg::ID_RQ;
+				return_packet.is_request = false;
+				return_packet.writer().write<uint8_t>(static_cast<uint8_t>(Clib::Protocol::DataType::MDC2_ID));
+				return return_packet;
+			}else{
+				return std::nullopt;
+			}
+		case CReg::EMS:
+			for(auto &m:be::motor){
+				m.emergency_stop();
+			}
+			return std::nullopt;
+		case CReg::RESET_EMS:
+			for(auto &m:be::motor){
+				m.emergency_stop_release();
+			}
+			return std::nullopt;
+		default:
+			return std::nullopt;
+		}
 		return std::nullopt;
 	}
 
@@ -155,14 +186,19 @@ namespace Task{
 		auto dp = rx_frame.value().encode_common_data_packet();
 		if(not dp.has_value()) return;
 
-		if(dp.value().board_ID != be::board_id) return;
-
 		std::optional<Clib::Protocol::DataPacket> return_pack;
 		switch(dp.value().data_type){
 		case Clib::Protocol::DataType::MDC2_ID:
-			return_pack = mdc2_data_operation(dp.value());
+			if(dp.value().board_ID == be::board_id){
+				return_pack = mdc2_data_operation(dp.value());
+			}
 			break;
 		case Clib::Protocol::DataType::COMMON_ID:
+			if(dp.value().board_ID == be::board_id){
+				return_pack = common_data_operation(dp.value());
+			}
+			break;
+		case Clib::Protocol::DataType::COMMON_ID_ENFORCE:
 			return_pack = common_data_operation(dp.value());
 			break;
 		default:
@@ -181,17 +217,22 @@ namespace Task{
 		if(not rx_str.has_value()) return;
 
 		Clib::CanFrame rx_frame = Clib::SLCAN::slcan_packed_to_can(rx_str.value());
-
 		auto dp = rx_frame.encode_common_data_packet();
 		if(not dp.has_value()) return;
-		if(dp.value().board_ID != be::board_id) return;
 
 		std::optional<Clib::Protocol::DataPacket> return_pack;
 		switch(dp.value().data_type){
 		case Clib::Protocol::DataType::MDC2_ID:
-			return_pack = mdc2_data_operation(dp.value());
+			if(dp.value().board_ID == be::board_id){
+				return_pack = mdc2_data_operation(dp.value());
+			}
 			break;
 		case Clib::Protocol::DataType::COMMON_ID:
+			if(dp.value().board_ID == be::board_id){
+				return_pack = common_data_operation(dp.value());
+			}
+			break;
+		case Clib::Protocol::DataType::COMMON_ID_ENFORCE:
 			return_pack = common_data_operation(dp.value());
 			break;
 		default:
@@ -204,7 +245,6 @@ namespace Task{
 			Clib::StrPack tx_str = Clib::SLCAN::can_to_slcan_packed(tx_frame);
 
 			be::usb_cdc.tx(tx_str);
-			//be::usb_uart.tx(tx_str);
 		}
 	}
 
