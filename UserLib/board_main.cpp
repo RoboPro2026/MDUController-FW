@@ -66,7 +66,7 @@ namespace BoardElement{
 	constexpr size_t MOTOR_N = 4;
 
 	constexpr auto default_init_param = Blib::MotorControlParam{
-		.mode = 0,
+		.mode = 0b0100'0000,
 		.trq_limit = 1.0f,
 		.spd_gain_p = 0.5f,
 		.spd_gain_i = 0.1f,
@@ -132,24 +132,37 @@ namespace BoardElement{
 	auto tim_1khz  = Clib::InterruptionTimerHard{&htim15};
 	auto tim_100hz = Clib::InterruptionTimerHard{&htim2};
 
-	auto tim_can_timeout =
-			std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_can_timeout) Clib::InterruptionTimerHard(&htim16)};
-	auto tim_monitor=
-			std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_monitor) Clib::InterruptionTimerHard(&htim17)};
+	auto tim_can_timeout = std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_can_timeout) Clib::InterruptionTimerHard(&htim16)};
+	auto tim_monitor = std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_monitor) Clib::InterruptionTimerHard(&htim17)};
 
 	auto motor = std::array<Blib::MotorUnit,MOTOR_N>{
-		Blib::MotorUnit(0,LED0_GPIO_Port,LED0_Pin,
-				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5)),
-				tim_can_timeout,tim_monitor),
-		Blib::MotorUnit(1,LED1_GPIO_Port,LED1_Pin,
-				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3)),
-				tim_can_timeout,tim_monitor),
-		Blib::MotorUnit(2,LED2_GPIO_Port,LED2_Pin,
-				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1)),
-				tim_can_timeout,tim_monitor),
-		Blib::MotorUnit(3,LED3_GPIO_Port,LED3_Pin,
-				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)),
-				tim_can_timeout,tim_monitor)
+		Blib::MotorUnit(
+				Blib::C6x0ControllerBuilder(0,MReg::RobomasMD::C610)
+					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5)), false)
+					.build(),
+				Blib::VescDataConverter(0),
+				LED0_GPIO_Port,LED0_Pin,tim_can_timeout,tim_monitor),
+
+		Blib::MotorUnit(
+				Blib::C6x0ControllerBuilder(1,MReg::RobomasMD::C610)
+					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3)), false)
+					.build(),
+				Blib::VescDataConverter(1),
+				LED1_GPIO_Port,LED1_Pin,tim_can_timeout,tim_monitor),
+
+		Blib::MotorUnit(
+				Blib::C6x0ControllerBuilder(2,MReg::RobomasMD::C610)
+					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1)), false)
+					.build(),
+				Blib::VescDataConverter(2),
+				LED2_GPIO_Port,LED2_Pin,tim_can_timeout,tim_monitor),
+
+		Blib::MotorUnit(
+				Blib::C6x0ControllerBuilder(3,MReg::RobomasMD::C610)
+					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)), false)
+					.build(),
+				Blib::VescDataConverter(3),
+				LED3_GPIO_Port,LED3_Pin,tim_can_timeout,tim_monitor)
 	};
 
 	auto flash = Blib::G4FlashRW(FLASH_BANK_2,126,0x807F000);

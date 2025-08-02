@@ -54,99 +54,26 @@ struct MotorUnit{
 
 	const CommonLib::Note* led_playing_pattern;
 
-	std::shared_ptr<CommonLib::InterruptionTimerHard> timeout_tim = nullptr;
-	std::shared_ptr<CommonLib::InterruptionTimerHard> monitor_tim = nullptr;
+	std::shared_ptr<CommonLib::InterruptionTimerHard> timeout_tim;
+	std::shared_ptr<CommonLib::InterruptionTimerHard> monitor_tim;
 
 	CommonLib::IDMap id_map;
 
-	void set_control_mode(uint8_t c_val){
-		MReg::ControlMode mode = static_cast<MReg::ControlMode>(c_val&0b11);
-		if(static_cast<size_t>(mode) == 0b11) return;
-
-		MReg::RobomasMD md = static_cast<MReg::RobomasMD>((c_val >> 2) & 0b1);
-		bool use_dob = ((c_val >> 4)&0b1) == 0b1;
-		bool use_abs_enc = ((c_val >> 5)&0b1) == 0b1;
-		bool est_m_type = ((c_val >> 5)&0b1) == 0b1;
-
-		rm_motor.set_control_mode(mode);
-		rm_motor.set_motor_type(md);
-		rm_motor.use_abs_enc(use_abs_enc);
-		rm_motor.use_dob(use_dob);
-		rm_motor.estimate_motor_type(est_m_type);
-	}
-
-	void update_led_pattern(void){
-		led_sequence.play(BoardLib::LEDPattern::led_mode_indicate[rm_motor.is_using_abs_enc() ? 1 : 0][static_cast<size_t>(rm_motor.get_control_mode())]);
-	}
-
-	uint8_t get_control_mode(void)const{
-		return static_cast<uint8_t>(rm_motor.get_control_mode())
-				| (static_cast<uint8_t>(rm_motor.get_motor_type()) << 2)
-				| (rm_motor.is_using_dob()?0b0001'0000:0)
-				| (rm_motor.is_using_abs_enc()?0b0010'0000:0);
-	}
-
-
-	void write_motor_control_param(const MotorControlParam &p){
-		set_control_mode(p.mode);
-		rm_motor.spd_pid.set_p_gain(p.spd_gain_p);
-		rm_motor.spd_pid.set_i_gain(p.spd_gain_i);
-		rm_motor.spd_pid.set_d_gain(p.spd_gain_d);
-		rm_motor.spd_pid.set_limit(p.trq_limit);
-
-		rm_motor.pos_pid.set_p_gain(p.pos_gain_p);
-		rm_motor.pos_pid.set_i_gain(p.pos_gain_i);
-		rm_motor.pos_pid.set_d_gain(p.pos_gain_d);
-		rm_motor.pos_pid.set_limit(p.spd_limit);
-
-		rm_motor.dob.inverse_model.set_inertia(p.dob_j);
-		rm_motor.dob.inverse_model.set_friction_coef(p.dob_d);
-		rm_motor.dob.set_lpf_cutoff_freq(p.dob_lpf_cutoff_freq);
-	}
-	void read_motor_control_param(MotorControlParam &p){
-		p.mode = get_control_mode();
-		p.spd_gain_p = rm_motor.spd_pid.get_p_gain();
-		p.spd_gain_i = rm_motor.spd_pid.get_i_gain();
-		p.spd_gain_d = rm_motor.spd_pid.get_d_gain();
-		auto [tll,tlh] = rm_motor.spd_pid.get_limit();
-		p.trq_limit = tlh;
-
-		p.pos_gain_p = rm_motor.pos_pid.get_p_gain();
-		p.pos_gain_i = rm_motor.pos_pid.get_i_gain();
-		p.pos_gain_d = rm_motor.pos_pid.get_d_gain();
-		auto [sll,slh] = rm_motor.pos_pid.get_limit();
-		p.spd_limit = slh;
-
-		p.dob_j = rm_motor.dob.inverse_model.get_inertia();
-		p.dob_d = rm_motor.dob.inverse_model.get_friction_coef();
-		p.dob_lpf_cutoff_freq = rm_motor.dob.get_lpf_cutoff_freq();
-	}
+	std::bitset<64> monitor_flags;
 
 	uint8_t rm_mode_tmp = 0;
 	MReg::VescMode vesc_mode_tmp = MReg::VescMode::NOP;
-	void emergency_stop(void){
-		rm_mode_tmp = get_control_mode();
-		vesc_mode_tmp = vesc_motor.get_mode();
-		set_control_mode(0);
-		vesc_motor.set_mode(MReg::VescMode::NOP);
-		rm_motor.set_torque(0.0);
-	}
-	void emergency_stop_release(void){
-		set_control_mode(rm_mode_tmp);
-		vesc_motor.set_mode(vesc_mode_tmp);
-	}
 
-	std::bitset<64> monitor_flags;
-
-	MotorUnit(int id,
+	MotorUnit(
+			C6x0Controller &&_rm_motor,
+			VescDataConverter &&_vesc_motor,
 			GPIO_TypeDef *led_port,
 			uint_fast16_t led_pin,
-			std::unique_ptr<BoardLib::IABSEncoder> abs_enc,
 			std::shared_ptr<CommonLib::InterruptionTimerHard> _timeout_tim,
 			std::shared_ptr<CommonLib::InterruptionTimerHard> _monitor_tim
 			):
-		rm_motor(C6x0ControllerBuilder(id,MReg::RobomasMD::C610).set_abs_enc(std::move(abs_enc), false).build()),
-		vesc_motor(id),
+		rm_motor(std::move(_rm_motor)),
+		vesc_motor(std::move(_vesc_motor)),
 		led(led_port,led_pin),
 		led_sequence([&](float v){led(v>0.0f);}),
 		led_playing_pattern(BoardLib::LEDPattern::led_mode_indicate[0][0]),
@@ -248,8 +175,85 @@ struct MotorUnit{
 				
 				.build()){
 
-		set_control_mode(0b0000'0000);
+		set_control_mode(0b0100'0000);
 	}
+
+	void set_control_mode(uint8_t c_val){
+		MReg::ControlMode mode = static_cast<MReg::ControlMode>(c_val&0b11);
+		if(static_cast<size_t>(mode) == 0b11) return;
+
+		MReg::RobomasMD md = static_cast<MReg::RobomasMD>((c_val >> 2) & 0b1);
+		bool use_dob = ((c_val >> 4)&0b1) == 0b1;
+		bool use_abs_enc = ((c_val >> 5)&0b1) == 0b1;
+		bool est_m_type = ((c_val >> 6)&0b1) == 0b1;
+
+		rm_motor.set_control_mode(mode);
+		rm_motor.set_motor_type(md);
+		rm_motor.use_abs_enc(use_abs_enc);
+		rm_motor.use_dob(use_dob);
+		rm_motor.estimate_motor_type(est_m_type);
+	}
+
+	void update_led_pattern(void){
+		led_sequence.play(BoardLib::LEDPattern::led_mode_indicate[rm_motor.is_using_abs_enc() ? 1 : 0][static_cast<size_t>(rm_motor.get_control_mode())]);
+	}
+
+	uint8_t get_control_mode(void)const{
+		return static_cast<uint8_t>(rm_motor.get_control_mode())
+				| (static_cast<uint8_t>(rm_motor.get_motor_type()) << 2)
+				| (rm_motor.is_using_dob()?0b0001'0000:0)
+				| (rm_motor.is_using_abs_enc()?0b0010'0000:0);
+	}
+
+
+	void write_motor_control_param(const MotorControlParam &p){
+		set_control_mode(p.mode);
+		rm_motor.spd_pid.set_p_gain(p.spd_gain_p);
+		rm_motor.spd_pid.set_i_gain(p.spd_gain_i);
+		rm_motor.spd_pid.set_d_gain(p.spd_gain_d);
+		rm_motor.spd_pid.set_limit(p.trq_limit);
+
+		rm_motor.pos_pid.set_p_gain(p.pos_gain_p);
+		rm_motor.pos_pid.set_i_gain(p.pos_gain_i);
+		rm_motor.pos_pid.set_d_gain(p.pos_gain_d);
+		rm_motor.pos_pid.set_limit(p.spd_limit);
+
+		rm_motor.dob.inverse_model.set_inertia(p.dob_j);
+		rm_motor.dob.inverse_model.set_friction_coef(p.dob_d);
+		rm_motor.dob.set_lpf_cutoff_freq(p.dob_lpf_cutoff_freq);
+	}
+	void read_motor_control_param(MotorControlParam &p){
+		p.mode = get_control_mode();
+		p.spd_gain_p = rm_motor.spd_pid.get_p_gain();
+		p.spd_gain_i = rm_motor.spd_pid.get_i_gain();
+		p.spd_gain_d = rm_motor.spd_pid.get_d_gain();
+		auto [tll,tlh] = rm_motor.spd_pid.get_limit();
+		p.trq_limit = tlh;
+
+		p.pos_gain_p = rm_motor.pos_pid.get_p_gain();
+		p.pos_gain_i = rm_motor.pos_pid.get_i_gain();
+		p.pos_gain_d = rm_motor.pos_pid.get_d_gain();
+		auto [sll,slh] = rm_motor.pos_pid.get_limit();
+		p.spd_limit = slh;
+
+		p.dob_j = rm_motor.dob.inverse_model.get_inertia();
+		p.dob_d = rm_motor.dob.inverse_model.get_friction_coef();
+		p.dob_lpf_cutoff_freq = rm_motor.dob.get_lpf_cutoff_freq();
+	}
+
+	void emergency_stop(void){
+		rm_mode_tmp = get_control_mode();
+		vesc_mode_tmp = vesc_motor.get_mode();
+		set_control_mode(0);
+		vesc_motor.set_mode(MReg::VescMode::NOP);
+		rm_motor.set_torque(0.0);
+	}
+	void emergency_stop_release(void){
+		set_control_mode(rm_mode_tmp);
+		vesc_motor.set_mode(vesc_mode_tmp);
+	}
+
+
 };
 
 
