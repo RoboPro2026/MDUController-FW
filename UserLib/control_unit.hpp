@@ -38,6 +38,7 @@ struct MotorControlParam{
 
 	float dob_j;
 	float dob_d;
+	float dob_lpf_cutoff_freq;
 };
 
 
@@ -100,6 +101,7 @@ struct MotorUnit{
 
 		rm_motor.dob.inverse_model.set_inertia(p.dob_j);
 		rm_motor.dob.inverse_model.set_friction_coef(p.dob_d);
+		rm_motor.dob.set_lpf_cutoff_freq(p.dob_lpf_cutoff_freq);
 	}
 	void read_motor_control_param(MotorControlParam &p){
 		p.mode = get_control_mode();
@@ -117,6 +119,7 @@ struct MotorUnit{
 
 		p.dob_j = rm_motor.dob.inverse_model.get_inertia();
 		p.dob_d = rm_motor.dob.inverse_model.get_friction_coef();
+		p.dob_lpf_cutoff_freq = rm_motor.dob.get_lpf_cutoff_freq();
 	}
 
 	uint8_t rm_mode_tmp = 0;
@@ -167,7 +170,8 @@ struct MotorUnit{
 						[&](float d)mutable{rm_motor.dob.inverse_model.set_friction_coef(d);},
 						[&]()->float{return rm_motor.dob.inverse_model.get_friction_coef();}))
 				.add(MReg::DOB_CF,         CommonLib::DataAccessor::generate<float>(
-						[&](float f)mutable{rm_motor.dob.set_lpf_cutoff_freq(f);}))
+						[&](float f)mutable{rm_motor.dob.set_lpf_cutoff_freq(f);},
+						[&]()->float{return rm_motor.dob.get_lpf_cutoff_freq();}))
 
 				.add(MReg::CAN_TIMEOUT,    CommonLib::DataAccessor::generate<uint16_t>(
 						[&](uint16_t p)mutable{
