@@ -23,6 +23,7 @@ namespace CommonRegister{
 	inline constexpr size_t NOP             = 0x0000;
 	inline constexpr size_t ID_RQ           = 0x0001;
 	inline constexpr size_t SAVE_PARAM      = 0x0002;
+	inline constexpr size_t RESET_PARAM     = 0x0003;
 	inline constexpr size_t EMS             = 0x000E;
 	inline constexpr size_t RESET_EMS       = 0x000F;
 }

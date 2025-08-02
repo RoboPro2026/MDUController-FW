@@ -23,6 +23,24 @@
 
 namespace BoardLib{
 
+struct MotorControlParam{
+	uint8_t mode;
+
+	float trq_limit;
+	float spd_gain_p;
+	float spd_gain_i;
+	float spd_gain_d;
+
+	float spd_limit;
+	float pos_gain_p;
+	float pos_gain_i;
+	float pos_gain_d;
+
+	float dob_j;
+	float dob_d;
+};
+
+
 struct MotorUnit{
 	bool is_active = false;
 	C6x0Controller rm_motor;
@@ -65,6 +83,40 @@ struct MotorUnit{
 				| (static_cast<uint8_t>(rm_motor.get_motor_type()) << 2)
 				| (rm_motor.is_using_dob()?0b0001'0000:0)
 				| (rm_motor.is_using_abs_enc()?0b0010'0000:0);
+	}
+
+
+	void write_motor_control_param(const MotorControlParam &p){
+		set_control_mode(p.mode);
+		rm_motor.spd_pid.set_p_gain(p.spd_gain_p);
+		rm_motor.spd_pid.set_i_gain(p.spd_gain_i);
+		rm_motor.spd_pid.set_d_gain(p.spd_gain_d);
+		rm_motor.spd_pid.set_limit(p.trq_limit);
+
+		rm_motor.pos_pid.set_p_gain(p.pos_gain_p);
+		rm_motor.pos_pid.set_i_gain(p.pos_gain_i);
+		rm_motor.pos_pid.set_d_gain(p.pos_gain_d);
+		rm_motor.pos_pid.set_limit(p.spd_limit);
+
+		rm_motor.dob.inverse_model.set_inertia(p.dob_j);
+		rm_motor.dob.inverse_model.set_friction_coef(p.dob_d);
+	}
+	void read_motor_control_param(MotorControlParam &p){
+		p.mode = get_control_mode();
+		p.spd_gain_p = rm_motor.spd_pid.get_p_gain();
+		p.spd_gain_i = rm_motor.spd_pid.get_i_gain();
+		p.spd_gain_d = rm_motor.spd_pid.get_d_gain();
+		auto [tll,tlh] = rm_motor.spd_pid.get_limit();
+		p.trq_limit = tlh;
+
+		p.pos_gain_p = rm_motor.pos_pid.get_p_gain();
+		p.pos_gain_i = rm_motor.pos_pid.get_i_gain();
+		p.pos_gain_d = rm_motor.pos_pid.get_d_gain();
+		auto [sll,slh] = rm_motor.pos_pid.get_limit();
+		p.spd_limit = slh;
+
+		p.dob_j = rm_motor.dob.inverse_model.get_inertia();
+		p.dob_d = rm_motor.dob.inverse_model.get_friction_coef();
 	}
 
 	uint8_t rm_mode_tmp = 0;

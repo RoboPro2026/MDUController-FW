@@ -90,6 +90,4 @@ public:
 #endif //HAL_TIM_MODULE_ENABLED
 
 
-
-
 #endif /* COMMONLIB_TIMER_INTERRUPTION_CONTROL_HPP_ */

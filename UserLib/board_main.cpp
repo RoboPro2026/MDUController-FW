@@ -45,9 +45,6 @@ namespace Clib = CommonLib;
 namespace Blib = BoardLib;
 
 namespace BoardElement{
-	constexpr size_t MOTOR_N = 4;
-	size_t board_id = 0x0;
-
 	namespace TmpMemoryPool{
 		uint8_t can_main_tx_buff[sizeof(Clib::RingBuffer<Clib::CanFrame,5>)];
 		uint8_t can_main_rx_buff[sizeof(Clib::RingBuffer<Clib::CanFrame,5>)];
@@ -64,6 +61,33 @@ namespace BoardElement{
 		uint8_t tim_monitor[sizeof(Clib::InterruptionTimerHard)];
 		uint8_t tim_can_timeout[sizeof(Clib::InterruptionTimerHard)];
 	}
+
+	constexpr size_t MOTOR_N = 4;
+
+	constexpr auto default_init_param = Blib::MotorControlParam{
+		.mode = 0,
+		.trq_limit = 1.0f,
+		.spd_gain_p = 0.5f,
+		.spd_gain_i = 0.1f,
+		.spd_gain_d = 0.0f,
+
+		.spd_limit = 314.0f,
+		.pos_gain_p = 5.0f,
+		.pos_gain_i = 0.0f,
+		.pos_gain_d = 0.0f,
+
+		.dob_j = 0.0004f,
+		.dob_d = 0.0005f
+	};
+
+	struct MotorInitParam{
+		int never_writed;
+		std::array<Blib::MotorControlParam,MOTOR_N> param;
+	};
+
+	auto init_params = MotorInitParam();
+
+	size_t board_id = 0x0;
 
 	auto can_main = Clib::FdCanComm{
 		&hfdcan2,
@@ -125,6 +149,8 @@ namespace BoardElement{
 				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)),
 				tim_can_timeout,tim_monitor)
 	};
+
+	auto flash = Blib::G4FlashRW(FLASH_BANK_2,126,0x807F000);
 }
 
 namespace be = BoardElement;
@@ -173,6 +199,23 @@ namespace Task{
 			}else{
 				return std::nullopt;
 			}
+		case CReg::SAVE_PARAM:
+			for(size_t i = 0; i < be::MOTOR_N; i++){
+				be::motor[i].read_motor_control_param(be::init_params.param[i]);
+			}
+			be::init_params.never_writed = 0;
+			be::flash.write(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
+			be::led_g_sequencer.play(Blib::LEDPattern::test, true);
+			return std::nullopt;
+		case CReg::RESET_PARAM:
+			for(size_t i = 0; i < be::MOTOR_N; i++){
+				be::motor[i].write_motor_control_param(be::default_init_param);
+				be::init_params.param[i] = be::default_init_param;
+			}
+			be::init_params.never_writed = 0;
+			be::flash.write(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
+			be::led_g_sequencer.play(Blib::LEDPattern::test, true);
+			return std::nullopt;
 		case CReg::EMS:
 			be::led_r_sequencer.play(Blib::LEDPattern::test, true);
 			HAL_Delay(500); //完全に電源が落ちるまで待機 <-旧基板では入れてたけど不要かも
@@ -335,6 +378,17 @@ namespace Task{
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 extern "C"
 void cppmain(void){
+	be::flash.read(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
+	if(be::init_params.never_writed == -1){
+		for(auto &m:be::motor){
+			m.write_motor_control_param(be::default_init_param);
+		}
+	}else{
+		for(size_t i = 0; i < be::MOTOR_N; i++){
+			be::motor[i].write_motor_control_param(be::init_params.param[i]);
+		}
+	}
+
 	be::board_id = Task::read_board_id();
 
 	be::led_r.start();
