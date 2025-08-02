@@ -184,7 +184,6 @@ namespace Task{
 		}
 	}
 	std::optional<Clib::Protocol::DataPacket> common_data_operation(const Clib::Protocol::DataPacket& dp){
-		//TODO:動作チェック
 		Clib::Protocol::DataPacket return_packet = dp;
 
 		switch(dp.register_ID){
@@ -396,8 +395,11 @@ void cppmain(void){
 	be::led_g.start();
 	be::led_b.start();
 
-	be::can_main.set_filter(0, 0x0040'0000 | (be::board_id<<16), 0x00FF'0000,Clib::CanFilterMode::ONLY_EXT);
+	be::can_main.set_filter(0,
+			static_cast<size_t>(Clib::Protocol::DataType::MDC2_ID)<<16 | (be::board_id<<16),
+			0x00FF'0000,Clib::CanFilterMode::ONLY_EXT);
 	be::can_main.start();
+
 	be::can_md.set_filter_free(0,Clib::CanFilterMode::ONLY_STD);
 	be::can_md.start();
 

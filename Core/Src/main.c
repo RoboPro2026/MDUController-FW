@@ -131,6 +131,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  //メインコードはUserLib/board_main.cppに実装
 	  cppmain();
   }
   /* USER CODE END 3 */

@@ -31,7 +31,7 @@ namespace BoardLib::LEDPattern{
 		CommonLib::end_of_io_sequence
 	};
 
-	inline constexpr CommonLib::Note test[]={
+	inline constexpr CommonLib::Note sos[]={
 		{1.0f,100},
 		{0.0f,100},
 		{1.0f,100},

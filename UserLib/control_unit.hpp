@@ -231,9 +231,9 @@ struct MotorUnit{
 						[&](int32_t t)mutable{rm_motor.abs_enc->set_turn_count(t);},
 						[&]()->int32_t{return rm_motor.abs_enc->get_turn_count();}))
 
-				.add(MReg::VESC_MODE,      CommonLib::DataAccessor::generate<int8_t>(
-						[&](int8_t m)mutable{vesc_motor.set_mode(static_cast<MReg::VescMode>(m));},
-						[&]()->int8_t{return static_cast<uint8_t>(vesc_motor.get_mode());}))
+				.add(MReg::VESC_MODE,      CommonLib::DataAccessor::generate<uint8_t>(
+						[&](uint8_t m)mutable{vesc_motor.set_mode(static_cast<MReg::VescMode>(m));},
+						[&]()->uint8_t{return static_cast<uint8_t>(vesc_motor.get_mode());}))
 				.add(MReg::VESC_TARGET,    CommonLib::DataAccessor::generate<float>(&vesc_value))
 				
 				.add(MReg::MONITOR_PERIOD, CommonLib::DataAccessor::generate<uint16_t>(
