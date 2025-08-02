@@ -205,7 +205,7 @@ namespace Task{
 			}
 			be::init_params.never_writed = 0;
 			be::flash.write(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
-			be::led_g_sequencer.play(Blib::LEDPattern::test, true);
+			be::led_g_sequencer.play(Blib::LEDPattern::error, true);
 			return std::nullopt;
 		case CReg::RESET_PARAM:
 			for(size_t i = 0; i < be::MOTOR_N; i++){
@@ -214,17 +214,17 @@ namespace Task{
 			}
 			be::init_params.never_writed = 0;
 			be::flash.write(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
-			be::led_g_sequencer.play(Blib::LEDPattern::test, true);
+			be::led_g_sequencer.play(Blib::LEDPattern::error, true);
 			return std::nullopt;
 		case CReg::EMS:
-			be::led_r_sequencer.play(Blib::LEDPattern::test, true);
+			be::led_r_sequencer.play(Blib::LEDPattern::error, true);
 			HAL_Delay(500); //完全に電源が落ちるまで待機 <-旧基板では入れてたけど不要かも
 			for(auto &m:be::motor){
 				m.emergency_stop();
 			}
 			return std::nullopt;
 		case CReg::RESET_EMS:
-			be::led_b_sequencer.play(Blib::LEDPattern::test, true);
+			be::led_b_sequencer.play(Blib::LEDPattern::error, true);
 			HAL_Delay(100); //完全に電源が復帰するまで待機　<-旧基板では入れてたけど不要かも
 			for(auto &m:be::motor){
 				m.emergency_stop_release();
@@ -378,6 +378,7 @@ namespace Task{
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 extern "C"
 void cppmain(void){
+	//初期設定の適用
 	be::flash.read(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
 	if(be::init_params.never_writed == -1){
 		for(auto &m:be::motor){
@@ -418,7 +419,7 @@ void cppmain(void){
 	be::tim_monitor->set_task(Task::monitor_task);
 
 	be::tim_can_timeout->set_task([](){
-		be::led_r_sequencer.play(Blib::LEDPattern::test, true);
+		be::led_r_sequencer.play(Blib::LEDPattern::error, true);
 		for(auto &m:be::motor){
 			m.emergency_stop();
 		}
@@ -426,12 +427,13 @@ void cppmain(void){
 
 	be::tim_1khz.start_timer(1.0f/1000.0f);
 
-	be::led_r_sequencer.play(Blib::LEDPattern::setting);
-	be::led_g_sequencer.play(Blib::LEDPattern::setting);
-	be::led_b_sequencer.play(Blib::LEDPattern::setting);
+	be::led_r_sequencer.play(Blib::LEDPattern::running);
+	be::led_g_sequencer.play(Blib::LEDPattern::running);
+	be::led_b_sequencer.play(Blib::LEDPattern::running);
 
+	//メインループ
 	while(1){
-		//be::led_g_sequencer.play(Blib::LEDPattern::test);
+		be::led_g_sequencer.play(Blib::LEDPattern::running);
 		Task::can_main_task();
 		Task::usb_task();
 		for(auto &m:be::motor){

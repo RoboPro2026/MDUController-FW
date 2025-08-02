@@ -18,7 +18,12 @@ namespace BoardLib::LEDPattern{
 		{0.0f,100},
 		CommonLib::end_of_io_sequence
 	};
-	inline constexpr CommonLib::Note setting[]={
+	inline constexpr CommonLib::Note running[] = {
+		{1.0f,100},
+		{0.0f,900},
+		CommonLib::end_of_io_sequence
+	};
+	inline constexpr CommonLib::Note error[]={
 		{1.0f,100},
 		{0.0f,100},
 		{1.0f,700},
