@@ -45,6 +45,7 @@ namespace Clib = CommonLib;
 namespace Blib = BoardLib;
 
 namespace BoardElement{
+	constexpr size_t MOTOR_N = 4;
 	size_t board_id = 0x0;
 
 	namespace TmpMemoryPool{
@@ -96,7 +97,7 @@ namespace BoardElement{
 	auto led_g_sequencer = Clib::Sequencer{[](float v){led_g(1.0-v);}};
 	auto led_b_sequencer = Clib::Sequencer{[](float v){led_b(1.0-v);}};
 
-	auto id_pins = std::array<Clib::GPIO,4>{
+	auto id_pins = std::array<Clib::GPIO,MOTOR_N>{
 		Clib::GPIO{ID0_GPIO_Port,ID0_Pin},
 		Clib::GPIO{ID1_GPIO_Port,ID1_Pin},
 		Clib::GPIO{ID2_GPIO_Port,ID2_Pin},
@@ -110,7 +111,7 @@ namespace BoardElement{
 	auto tim_monitor=
 			std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_monitor) Clib::InterruptionTimerHard(&htim17)};
 
-	auto motor = std::array<Blib::MotorUnit,4>{
+	auto motor = std::array<Blib::MotorUnit,MOTOR_N>{
 		Blib::MotorUnit(0,LED0_GPIO_Port,LED0_Pin,
 				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5)),
 				tim_can_timeout,tim_monitor),
@@ -135,7 +136,7 @@ namespace Task{
 	//DataType::MDC2_IDのデータを処理
 	std::optional<Clib::Protocol::DataPacket> mdc2_data_operation(const Clib::Protocol::DataPacket& dp){
 		size_t motor_id = (dp.register_ID & 0x0F00)>>8;
-		if(motor_id >= 4){
+		if(motor_id >= be::MOTOR_N){
 			return std::nullopt;
 		}
 
@@ -173,11 +174,13 @@ namespace Task{
 				return std::nullopt;
 			}
 		case CReg::EMS:
+			HAL_Delay(500); //完全に電源が落ちるまで待機 <-旧基板では入れてたけど不要かも
 			for(auto &m:be::motor){
 				m.emergency_stop();
 			}
 			return std::nullopt;
 		case CReg::RESET_EMS:
+			HAL_Delay(100); //完全に電源が復帰するまで待機　<-旧基板では入れてたけど不要かも
 			for(auto &m:be::motor){
 				m.emergency_stop_release();
 			}
@@ -291,6 +294,31 @@ namespace Task{
 		}
 	}
 
+	///////////////////////////////////////////////////////////////////////////
+	//VESCへの送信
+	///////////////////////////////////////////////////////////////////////////
+	void monitor_task(void){
+		for(size_t motor_n = 0; motor_n < be::MOTOR_N; motor_n++){
+			for(auto &map_element : be::motor[motor_n].id_map.accessors_map){
+				if((map_element.first < be::motor[motor_n].monitor_flags.size())
+						&& be::motor[motor_n].monitor_flags.test(map_element.first)){
+
+					Clib::Protocol::DataPacket tx_packet;
+					tx_packet.register_ID = map_element.first | (motor_n << 8);
+					tx_packet.board_ID = be::board_id;
+					tx_packet.data_type = Clib::Protocol::DataType::MDC2_ID;
+
+					auto writer = tx_packet.writer();
+					if(map_element.second.get(writer)){
+						Clib::CanFrame tx_frame;
+						tx_frame.decode_common_data_packet(tx_packet);
+						be::can_main.tx(tx_frame);
+					}
+				}
+			}
+		}
+	}
+
 	uint8_t read_board_id(void){
 		uint8_t id = 0;
 		for(int i = 0; i<4; i++){
@@ -331,15 +359,13 @@ void cppmain(void){
 		}
 	});
 
-	be::tim_1khz.start_timer(1.0f/1000.0f);
+	be::tim_monitor->set_task(Task::monitor_task);
 
-	be::tim_monitor->set_task([](){
-		be::led_r_sequencer.play(Blib::LEDPattern::ok);
-	});
 	be::tim_can_timeout->set_task([](){
 		be::led_g_sequencer.play(Blib::LEDPattern::ok);
 	});
-	//be::tim_monitor->start_timer(1.0);
+
+	be::tim_1khz.start_timer(1.0f/1000.0f);
 
 	be::led_r_sequencer.play(Blib::LEDPattern::setting);
 	be::led_g_sequencer.play(Blib::LEDPattern::setting);

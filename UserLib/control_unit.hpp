@@ -19,6 +19,7 @@
 #include "LED_pattern.hpp"
 
 #include <memory>
+#include <bitset>
 
 namespace BoardLib{
 
@@ -74,6 +75,8 @@ struct MotorUnit{
 	void emergency_stop_release(void){
 		set_control_mode(mode_tmp);
 	}
+
+	std::bitset<64> monitor_flags;
 
 	MotorUnit(int id,
 			GPIO_TypeDef *led_port,
@@ -178,6 +181,9 @@ struct MotorUnit{
 								monitor_tim->start_timer(p==0 ? -1.0f : static_cast<float>(p)*0.001);
 							}
 						}))
+				.add(MReg::MONITOR_REG,    CommonLib::DataAccessor::generate<uint64_t>(
+						[&](uint64_t val)mutable{ monitor_flags = std::bitset<64>{val};},
+						[&]()->uint64_t{ return monitor_flags.to_ullong();}))
 				
 				.build()){
 
