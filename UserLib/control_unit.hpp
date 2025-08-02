@@ -41,12 +41,16 @@ struct MotorControlParam{
 	float dob_lpf_cutoff_freq;
 };
 
-
-struct MotorUnit{
+class MotorUnit{
 	bool is_active = false;
-	C6x0Controller rm_motor;
-	VescDataConverter vesc_motor;
 
+	uint8_t rm_mode_tmp = 0;
+	MReg::VescMode vesc_mode_tmp = MReg::VescMode::NOP;
+
+public:
+	C6x0Controller rm_motor;
+
+	VescDataConverter vesc_motor;
 	float vesc_value = 0.0f;
 
 	CommonLib::GPIO led;
@@ -60,9 +64,6 @@ struct MotorUnit{
 	CommonLib::IDMap id_map;
 
 	std::bitset<64> monitor_flags;
-
-	uint8_t rm_mode_tmp = 0;
-	MReg::VescMode vesc_mode_tmp = MReg::VescMode::NOP;
 
 	MotorUnit(
 			C6x0Controller &&_rm_motor,
@@ -194,10 +195,6 @@ struct MotorUnit{
 		rm_motor.estimate_motor_type(est_m_type);
 	}
 
-	void update_led_pattern(void){
-		led_sequence.play(BoardLib::LEDPattern::led_mode_indicate[rm_motor.is_using_abs_enc() ? 1 : 0][static_cast<size_t>(rm_motor.get_control_mode())]);
-	}
-
 	uint8_t get_control_mode(void)const{
 		return static_cast<uint8_t>(rm_motor.get_control_mode())
 				| (static_cast<uint8_t>(rm_motor.get_motor_type()) << 2)
@@ -205,6 +202,9 @@ struct MotorUnit{
 				| (rm_motor.is_using_abs_enc()?0b0010'0000:0);
 	}
 
+	void update_led_pattern(void){
+		led_sequence.play(BoardLib::LEDPattern::led_mode_indicate[rm_motor.is_using_abs_enc() ? 1 : 0][static_cast<size_t>(rm_motor.get_control_mode())]);
+	}
 
 	void write_motor_control_param(const MotorControlParam &p){
 		set_control_mode(p.mode);
@@ -252,10 +252,7 @@ struct MotorUnit{
 		set_control_mode(rm_mode_tmp);
 		vesc_motor.set_mode(vesc_mode_tmp);
 	}
-
-
 };
-
 
 }//namespace BoardLib
 
