@@ -38,6 +38,7 @@ extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim15;
 extern TIM_HandleTypeDef htim16;
 extern TIM_HandleTypeDef htim17;
+extern TIM_HandleTypeDef htim2;
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
@@ -65,7 +66,7 @@ namespace BoardElement{
 	constexpr size_t MOTOR_N = 4;
 
 	constexpr auto default_init_param = Blib::MotorControlParam{
-		.mode = 0,
+		.mode = 0b0100'0000,
 		.trq_limit = 1.0f,
 		.spd_gain_p = 0.5f,
 		.spd_gain_i = 0.1f,
@@ -128,26 +129,40 @@ namespace BoardElement{
 		Clib::GPIO{ID3_GPIO_Port,ID3_Pin}
 	};
 
-	auto tim_1khz = Clib::InterruptionTimerHard{&htim15};
+	auto tim_1khz  = Clib::InterruptionTimerHard{&htim15};
+	auto tim_100hz = Clib::InterruptionTimerHard{&htim2};
 
-	auto tim_can_timeout =
-			std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_can_timeout) Clib::InterruptionTimerHard(&htim16)};
-	auto tim_monitor=
-			std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_monitor) Clib::InterruptionTimerHard(&htim17)};
+	auto tim_can_timeout = std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_can_timeout) Clib::InterruptionTimerHard(&htim16)};
+	auto tim_monitor = std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_monitor) Clib::InterruptionTimerHard(&htim17)};
 
 	auto motor = std::array<Blib::MotorUnit,MOTOR_N>{
-		Blib::MotorUnit(0,LED0_GPIO_Port,LED0_Pin,
-				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5)),
-				tim_can_timeout,tim_monitor),
-		Blib::MotorUnit(1,LED1_GPIO_Port,LED1_Pin,
-				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3)),
-				tim_can_timeout,tim_monitor),
-		Blib::MotorUnit(2,LED2_GPIO_Port,LED2_Pin,
-				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1)),
-				tim_can_timeout,tim_monitor),
-		Blib::MotorUnit(3,LED3_GPIO_Port,LED3_Pin,
-				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)),
-				tim_can_timeout,tim_monitor)
+		Blib::MotorUnit(
+				Blib::C6x0ControllerBuilder(0,MReg::RobomasMD::C610)
+					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5)), false)
+					.build(),
+				Blib::VescDataConverter(0),
+				LED0_GPIO_Port,LED0_Pin,tim_can_timeout,tim_monitor),
+
+		Blib::MotorUnit(
+				Blib::C6x0ControllerBuilder(1,MReg::RobomasMD::C610)
+					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3)), false)
+					.build(),
+				Blib::VescDataConverter(1),
+				LED1_GPIO_Port,LED1_Pin,tim_can_timeout,tim_monitor),
+
+		Blib::MotorUnit(
+				Blib::C6x0ControllerBuilder(2,MReg::RobomasMD::C610)
+					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1)), false)
+					.build(),
+				Blib::VescDataConverter(2),
+				LED2_GPIO_Port,LED2_Pin,tim_can_timeout,tim_monitor),
+
+		Blib::MotorUnit(
+				Blib::C6x0ControllerBuilder(3,MReg::RobomasMD::C610)
+					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)), false)
+					.build(),
+				Blib::VescDataConverter(3),
+				LED3_GPIO_Port,LED3_Pin,tim_can_timeout,tim_monitor)
 	};
 
 	auto flash = Blib::G4FlashRW(FLASH_BANK_2,126,0x807F000);
@@ -184,7 +199,6 @@ namespace Task{
 		}
 	}
 	std::optional<Clib::Protocol::DataPacket> common_data_operation(const Clib::Protocol::DataPacket& dp){
-		//TODO:動作チェック
 		Clib::Protocol::DataPacket return_packet = dp;
 
 		switch(dp.register_ID){
@@ -205,7 +219,7 @@ namespace Task{
 			}
 			be::init_params.never_writed = 0;
 			be::flash.write(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
-			be::led_g_sequencer.play(Blib::LEDPattern::test, true);
+			be::led_g_sequencer.play(Blib::LEDPattern::error, true);
 			return std::nullopt;
 		case CReg::RESET_PARAM:
 			for(size_t i = 0; i < be::MOTOR_N; i++){
@@ -214,17 +228,17 @@ namespace Task{
 			}
 			be::init_params.never_writed = 0;
 			be::flash.write(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
-			be::led_g_sequencer.play(Blib::LEDPattern::test, true);
+			be::led_g_sequencer.play(Blib::LEDPattern::error, true);
 			return std::nullopt;
 		case CReg::EMS:
-			be::led_r_sequencer.play(Blib::LEDPattern::test, true);
+			be::led_r_sequencer.play(Blib::LEDPattern::error, true);
 			HAL_Delay(500); //完全に電源が落ちるまで待機 <-旧基板では入れてたけど不要かも
 			for(auto &m:be::motor){
 				m.emergency_stop();
 			}
 			return std::nullopt;
 		case CReg::RESET_EMS:
-			be::led_b_sequencer.play(Blib::LEDPattern::test, true);
+			be::led_b_sequencer.play(Blib::LEDPattern::error, true);
 			HAL_Delay(100); //完全に電源が復帰するまで待機　<-旧基板では入れてたけど不要かも
 			for(auto &m:be::motor){
 				m.emergency_stop_release();
@@ -378,6 +392,7 @@ namespace Task{
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 extern "C"
 void cppmain(void){
+	//初期設定の適用
 	be::flash.read(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
 	if(be::init_params.never_writed == -1){
 		for(auto &m:be::motor){
@@ -391,18 +406,23 @@ void cppmain(void){
 
 	be::board_id = Task::read_board_id();
 
+	be::led_r.set_period(1000);
+	be::led_g.set_period(1000);
+	be::led_b.set_period(1000);
 	be::led_r.start();
 	be::led_g.start();
 	be::led_b.start();
 
-	be::can_main.set_filter(0, 0x0040'0000 | (be::board_id<<16), 0x00FF'0000,Clib::CanFilterMode::ONLY_EXT);
+	be::can_main.set_filter(0,
+			static_cast<size_t>(Clib::Protocol::DataType::MDC2_ID)<<16 | (be::board_id<<16),
+			0x00FF'0000,Clib::CanFilterMode::ONLY_EXT);
 	be::can_main.start();
+
 	be::can_md.set_filter_free(0,Clib::CanFilterMode::ONLY_STD);
 	be::can_md.start();
 
 	be::tim_1khz.set_task([](){
 		Task::can_transmit_to_robomas_motor();
-		Task::can_transmit_to_vesc();
 
 		be::led_r_sequencer.update();
 		be::led_g_sequencer.update();
@@ -415,23 +435,27 @@ void cppmain(void){
 		}
 	});
 
+	be::tim_100hz.set_task(Task::can_transmit_to_vesc);
+
 	be::tim_monitor->set_task(Task::monitor_task);
 
 	be::tim_can_timeout->set_task([](){
-		be::led_r_sequencer.play(Blib::LEDPattern::test, true);
+		be::led_r_sequencer.play(Blib::LEDPattern::error, true);
 		for(auto &m:be::motor){
 			m.emergency_stop();
 		}
 	});
 
 	be::tim_1khz.start_timer(1.0f/1000.0f);
+	be::tim_100hz.start_timer(1.0f/100.0f);
 
-	be::led_r_sequencer.play(Blib::LEDPattern::setting);
-	be::led_g_sequencer.play(Blib::LEDPattern::setting);
-	be::led_b_sequencer.play(Blib::LEDPattern::setting);
+	be::led_r_sequencer.play(Blib::LEDPattern::running);
+	be::led_g_sequencer.play(Blib::LEDPattern::running);
+	be::led_b_sequencer.play(Blib::LEDPattern::running);
 
+	//メインループ
 	while(1){
-		//be::led_g_sequencer.play(Blib::LEDPattern::test);
+		be::led_g_sequencer.play(Blib::LEDPattern::running);
 		Task::can_main_task();
 		Task::usb_task();
 		for(auto &m:be::motor){
@@ -455,6 +479,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	}else if(huart == &huart2){
 		be::motor[3].rm_motor.abs_enc->read_finish_task();
 	}
+
 }
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 	if(huart == &huart5){
@@ -504,6 +529,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		be::tim_monitor->interrupt_task();
 	}else if(htim == be::tim_can_timeout->get_handler()){
 		be::tim_can_timeout->interrupt_task();
+	}else if(htim == be::tim_100hz.get_handler()){
+		be::tim_100hz.interrupt_task();
 	}
 }
 
