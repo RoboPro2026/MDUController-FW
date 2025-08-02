@@ -174,12 +174,14 @@ namespace Task{
 				return std::nullopt;
 			}
 		case CReg::EMS:
+			be::led_r_sequencer.play(Blib::LEDPattern::test, true);
 			HAL_Delay(500); //完全に電源が落ちるまで待機 <-旧基板では入れてたけど不要かも
 			for(auto &m:be::motor){
 				m.emergency_stop();
 			}
 			return std::nullopt;
 		case CReg::RESET_EMS:
+			be::led_b_sequencer.play(Blib::LEDPattern::test, true);
 			HAL_Delay(100); //完全に電源が復帰するまで待機　<-旧基板では入れてたけど不要かも
 			for(auto &m:be::motor){
 				m.emergency_stop_release();
@@ -295,7 +297,7 @@ namespace Task{
 	}
 
 	///////////////////////////////////////////////////////////////////////////
-	//VESCへの送信
+	//モニター処理
 	///////////////////////////////////////////////////////////////////////////
 	void monitor_task(void){
 		for(size_t motor_n = 0; motor_n < be::MOTOR_N; motor_n++){
@@ -362,7 +364,10 @@ void cppmain(void){
 	be::tim_monitor->set_task(Task::monitor_task);
 
 	be::tim_can_timeout->set_task([](){
-		be::led_g_sequencer.play(Blib::LEDPattern::ok);
+		be::led_r_sequencer.play(Blib::LEDPattern::test, true);
+		for(auto &m:be::motor){
+			m.emergency_stop();
+		}
 	});
 
 	be::tim_1khz.start_timer(1.0f/1000.0f);

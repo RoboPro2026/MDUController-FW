@@ -67,13 +67,18 @@ struct MotorUnit{
 				| (rm_motor.is_using_abs_enc()?0b0010'0000:0);
 	}
 
-	uint8_t mode_tmp = 0;
+	uint8_t rm_mode_tmp = 0;
+	MReg::VescMode vesc_mode_tmp = MReg::VescMode::NOP;
 	void emergency_stop(void){
-		mode_tmp = get_control_mode();
+		rm_mode_tmp = get_control_mode();
+		vesc_mode_tmp = vesc_motor.get_mode();
 		set_control_mode(0);
+		vesc_motor.set_mode(MReg::VescMode::NOP);
+		rm_motor.set_torque(0.0);
 	}
 	void emergency_stop_release(void){
-		set_control_mode(mode_tmp);
+		set_control_mode(rm_mode_tmp);
+		vesc_motor.set_mode(vesc_mode_tmp);
 	}
 
 	std::bitset<64> monitor_flags;
