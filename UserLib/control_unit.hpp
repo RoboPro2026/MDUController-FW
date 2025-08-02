@@ -34,8 +34,8 @@ struct MotorUnit{
 
 	const CommonLib::Note* led_playing_pattern;
 
-	std::shared_ptr<CommonLib::InterruptionTimerHard> timeout_tim;
-	std::shared_ptr<CommonLib::InterruptionTimerHard> monitor_tim;
+	std::shared_ptr<CommonLib::InterruptionTimerHard> timeout_tim = nullptr;
+	std::shared_ptr<CommonLib::InterruptionTimerHard> monitor_tim = nullptr;
 
 	CommonLib::IDMap id_map;
 

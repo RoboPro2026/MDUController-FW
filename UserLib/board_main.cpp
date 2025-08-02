@@ -59,6 +59,9 @@ namespace BoardElement{
 		uint8_t abs_enc1[sizeof(BoardLib::AMT21xEnc)];
 		uint8_t abs_enc2[sizeof(BoardLib::AMT21xEnc)];
 		uint8_t abs_enc3[sizeof(BoardLib::AMT21xEnc)];
+
+		uint8_t tim_monitor[sizeof(Clib::InterruptionTimerHard)];
+		uint8_t tim_can_timeout[sizeof(Clib::InterruptionTimerHard)];
 	}
 
 	auto can_main = Clib::FdCanComm{
