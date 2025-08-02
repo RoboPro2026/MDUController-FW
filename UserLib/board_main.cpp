@@ -38,6 +38,7 @@ extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim15;
 extern TIM_HandleTypeDef htim16;
 extern TIM_HandleTypeDef htim17;
+extern TIM_HandleTypeDef htim2;
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
@@ -128,7 +129,8 @@ namespace BoardElement{
 		Clib::GPIO{ID3_GPIO_Port,ID3_Pin}
 	};
 
-	auto tim_1khz = Clib::InterruptionTimerHard{&htim15};
+	auto tim_1khz  = Clib::InterruptionTimerHard{&htim15};
+	auto tim_100hz = Clib::InterruptionTimerHard{&htim2};
 
 	auto tim_can_timeout =
 			std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_can_timeout) Clib::InterruptionTimerHard(&htim16)};
@@ -391,6 +393,9 @@ void cppmain(void){
 
 	be::board_id = Task::read_board_id();
 
+	be::led_r.set_period(1000);
+	be::led_g.set_period(1000);
+	be::led_b.set_period(1000);
 	be::led_r.start();
 	be::led_g.start();
 	be::led_b.start();
@@ -405,7 +410,6 @@ void cppmain(void){
 
 	be::tim_1khz.set_task([](){
 		Task::can_transmit_to_robomas_motor();
-		Task::can_transmit_to_vesc();
 
 		be::led_r_sequencer.update();
 		be::led_g_sequencer.update();
@@ -418,6 +422,8 @@ void cppmain(void){
 		}
 	});
 
+	be::tim_100hz.set_task(Task::can_transmit_to_vesc);
+
 	be::tim_monitor->set_task(Task::monitor_task);
 
 	be::tim_can_timeout->set_task([](){
@@ -428,6 +434,7 @@ void cppmain(void){
 	});
 
 	be::tim_1khz.start_timer(1.0f/1000.0f);
+	be::tim_100hz.start_timer(1.0f/100.0f);
 
 	be::led_r_sequencer.play(Blib::LEDPattern::running);
 	be::led_g_sequencer.play(Blib::LEDPattern::running);
@@ -459,6 +466,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	}else if(huart == &huart2){
 		be::motor[3].rm_motor.abs_enc->read_finish_task();
 	}
+
 }
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 	if(huart == &huart5){
@@ -508,6 +516,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		be::tim_monitor->interrupt_task();
 	}else if(htim == be::tim_can_timeout->get_handler()){
 		be::tim_can_timeout->interrupt_task();
+	}else if(htim == be::tim_100hz.get_handler()){
+		be::tim_100hz.interrupt_task();
 	}
 }
 
