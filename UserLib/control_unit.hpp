@@ -75,12 +75,20 @@ struct MotorUnit{
 		set_control_mode(mode_tmp);
 	}
 
-	MotorUnit(int id,GPIO_TypeDef *led_port,uint_fast16_t led_pin,std::unique_ptr<BoardLib::IABSEncoder> abs_enc):
+	MotorUnit(int id,
+			GPIO_TypeDef *led_port,
+			uint_fast16_t led_pin,
+			std::unique_ptr<BoardLib::IABSEncoder> abs_enc,
+			std::shared_ptr<CommonLib::InterruptionTimerHard> _timeout_tim,
+			std::shared_ptr<CommonLib::InterruptionTimerHard> _monitor_tim
+			):
 		rm_motor(C6x0ControllerBuilder(id,MReg::RobomasMD::C610).set_abs_enc(std::move(abs_enc), false).build()),
 		vesc_motor(id),
 		led(led_port,led_pin),
 		led_sequence([&](float v){led(v>0.0f);}),
 		led_playing_pattern(BoardLib::LEDPattern::led_mode_indicate[0][0]),
+		timeout_tim(_timeout_tim),
+		monitor_tim(_monitor_tim),
 		id_map(CommonLib::IDMapBuilder()
 				.add(MReg::MOTOR_STATE,    CommonLib::DataAccessor::generate<bool>(&is_active))
 				.add(MReg::CONTROL,        CommonLib::DataAccessor::generate<uint8_t>(

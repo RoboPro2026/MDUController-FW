@@ -71,7 +71,7 @@ public:
 		return tim;
 	}
 
-	void reset_timer(void){
+	void reset_timer_count(void){
 		__HAL_TIM_SET_COUNTER(tim,0);
 	}
 

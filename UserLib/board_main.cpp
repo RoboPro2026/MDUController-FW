@@ -105,15 +105,24 @@ namespace BoardElement{
 
 	auto tim_1khz = Clib::InterruptionTimerHard{&htim15};
 
-	//TODO:iocファイルの設定が古いかもしれないので確認
-	auto tim_can_timeout = std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_can_timeout) Clib::InterruptionTimerHard(&htim16)};
-	auto tim_monitor= std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_monitor) Clib::InterruptionTimerHard(&htim17)};
+	auto tim_can_timeout =
+			std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_can_timeout) Clib::InterruptionTimerHard(&htim16)};
+	auto tim_monitor=
+			std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_monitor) Clib::InterruptionTimerHard(&htim17)};
 
 	auto motor = std::array<Blib::MotorUnit,4>{
-		Blib::MotorUnit(0,LED0_GPIO_Port,LED0_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5))),
-		Blib::MotorUnit(1,LED1_GPIO_Port,LED1_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3))),
-		Blib::MotorUnit(2,LED2_GPIO_Port,LED2_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1))),
-		Blib::MotorUnit(3,LED3_GPIO_Port,LED3_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)))
+		Blib::MotorUnit(0,LED0_GPIO_Port,LED0_Pin,
+				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5)),
+				tim_can_timeout,tim_monitor),
+		Blib::MotorUnit(1,LED1_GPIO_Port,LED1_Pin,
+				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3)),
+				tim_can_timeout,tim_monitor),
+		Blib::MotorUnit(2,LED2_GPIO_Port,LED2_Pin,
+				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1)),
+				tim_can_timeout,tim_monitor),
+		Blib::MotorUnit(3,LED3_GPIO_Port,LED3_Pin,
+				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)),
+				tim_can_timeout,tim_monitor)
 	};
 }
 
@@ -189,6 +198,8 @@ namespace Task{
 		auto dp = rx_frame.value().encode_common_data_packet();
 		if(not dp.has_value()) return;
 
+		be::led_b_sequencer.play(Blib::LEDPattern::ok);
+
 		std::optional<Clib::Protocol::DataPacket> return_pack;
 		switch(dp.value().data_type){
 		case Clib::Protocol::DataType::MDC2_ID:
@@ -227,15 +238,18 @@ namespace Task{
 		switch(dp.value().data_type){
 		case Clib::Protocol::DataType::MDC2_ID:
 			if(dp.value().board_ID == be::board_id){
+				be::led_b_sequencer.play(Blib::LEDPattern::ok);
 				return_pack = mdc2_data_operation(dp.value());
 			}
 			break;
 		case Clib::Protocol::DataType::COMMON_ID:
 			if(dp.value().board_ID == be::board_id){
+				be::led_b_sequencer.play(Blib::LEDPattern::ok);
 				return_pack = common_data_operation(dp.value());
 			}
 			break;
 		case Clib::Protocol::DataType::COMMON_ID_ENFORCE:
+			be::led_b_sequencer.play(Blib::LEDPattern::ok);
 			return_pack = common_data_operation(dp.value());
 			break;
 		default:
@@ -297,7 +311,7 @@ void cppmain(void){
 	be::led_g.start();
 	be::led_b.start();
 
-	be::can_main.set_filter(0, 0x0040'0000 | be::board_id, 0x00FF'0000,Clib::CanFilterMode::ONLY_EXT);
+	be::can_main.set_filter(0, 0x0040'0000 | (be::board_id<<16), 0x00FF'0000,Clib::CanFilterMode::ONLY_EXT);
 	be::can_main.start();
 	be::can_md.set_filter_free(0,Clib::CanFilterMode::ONLY_STD);
 	be::can_md.start();
@@ -319,12 +333,20 @@ void cppmain(void){
 
 	be::tim_1khz.start_timer(1.0f/1000.0f);
 
+	be::tim_monitor->set_task([](){
+		be::led_r_sequencer.play(Blib::LEDPattern::ok);
+	});
+	be::tim_can_timeout->set_task([](){
+		be::led_g_sequencer.play(Blib::LEDPattern::ok);
+	});
+	//be::tim_monitor->start_timer(1.0);
+
 	be::led_r_sequencer.play(Blib::LEDPattern::setting);
 	be::led_g_sequencer.play(Blib::LEDPattern::setting);
 	be::led_b_sequencer.play(Blib::LEDPattern::setting);
 
 	while(1){
-		be::led_g_sequencer.play(Blib::LEDPattern::test);
+		//be::led_g_sequencer.play(Blib::LEDPattern::test);
 		Task::can_main_task();
 		Task::usb_task();
 		for(auto &m:be::motor){
@@ -364,7 +386,6 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 //メイン通信用
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs){
 	be::can_main.rx_interrupt_task();
-	be::led_b_sequencer.play(Blib::LEDPattern::ok);
 }
 
 //ロボマス用
@@ -394,6 +415,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim == be::tim_1khz.get_handler()){
 		be::tim_1khz.interrupt_task();
+	}else if(htim == be::tim_monitor->get_handler()){
+		be::tim_monitor->interrupt_task();
+	}else if(htim == be::tim_can_timeout->get_handler()){
+		be::tim_can_timeout->interrupt_task();
 	}
 }
 
@@ -405,7 +430,6 @@ int _write(int file, char *ptr, int len) {
 
 void usb_cdc_rx_callback(const uint8_t *input,size_t size){
 	be::usb_cdc.rx_interrupt_task(input, size);
-	be::led_b_sequencer.play(Blib::LEDPattern::ok);
 }
 }//extern "C"
 
