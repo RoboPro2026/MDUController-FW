@@ -226,7 +226,7 @@ namespace Task{
 				be::motor[i].write_motor_control_param(be::default_init_param);
 				be::init_params.param[i] = be::default_init_param;
 			}
-			be::init_params.f_state = Clib::FlashState::WRITED;
+			be::init_params.f_state = Clib::FlashState::RESET;
 			be::flash.write(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
 			be::led_g_sequencer.play(Blib::LEDPattern::error, true);
 			return std::nullopt;
