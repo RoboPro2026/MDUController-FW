@@ -16,7 +16,7 @@
 #include "CommonLib/timer_interruption_control.hpp"
 #include "CommonLib/usb_cdc.hpp"
 #include "CommonLib/sequencer.hpp"
-#include "flash_management.hpp"
+#include "CommonLib/flash_management.hpp"
 
 #include "LED_pattern.hpp"
 #include "control_unit.hpp"
@@ -82,7 +82,7 @@ namespace BoardElement{
 	};
 
 	struct MotorInitParam{
-		int never_writed;
+		Clib::FlashState f_state;
 		std::array<Blib::MotorControlParam,MOTOR_N> param;
 	};
 
@@ -165,7 +165,7 @@ namespace BoardElement{
 				LED3_GPIO_Port,LED3_Pin,tim_can_timeout,tim_monitor)
 	};
 
-	auto flash = Blib::G4FlashRW(FLASH_BANK_2,126,0x807F000);
+	auto flash = Clib::G4FlashRW(FLASH_BANK_2,126,0x807F000);
 }
 
 namespace be = BoardElement;
@@ -217,7 +217,7 @@ namespace Task{
 			for(size_t i = 0; i < be::MOTOR_N; i++){
 				be::motor[i].read_motor_control_param(be::init_params.param[i]);
 			}
-			be::init_params.never_writed = 0;
+			be::init_params.f_state = Clib::FlashState::WRITED;
 			be::flash.write(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
 			be::led_g_sequencer.play(Blib::LEDPattern::error, true);
 			return std::nullopt;
@@ -226,7 +226,7 @@ namespace Task{
 				be::motor[i].write_motor_control_param(be::default_init_param);
 				be::init_params.param[i] = be::default_init_param;
 			}
-			be::init_params.never_writed = 0;
+			be::init_params.f_state = Clib::FlashState::WRITED;
 			be::flash.write(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
 			be::led_g_sequencer.play(Blib::LEDPattern::error, true);
 			return std::nullopt;
@@ -392,17 +392,6 @@ namespace Task{
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 extern "C"
 void cppmain(void){
-	//初期設定の適用
-	be::flash.read(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
-	if(be::init_params.never_writed == -1){
-		for(auto &m:be::motor){
-			m.write_motor_control_param(be::default_init_param);
-		}
-	}else{
-		for(size_t i = 0; i < be::MOTOR_N; i++){
-			be::motor[i].write_motor_control_param(be::init_params.param[i]);
-		}
-	}
 
 	be::board_id = Task::read_board_id();
 
@@ -449,9 +438,23 @@ void cppmain(void){
 	be::tim_1khz.start_timer(1.0f/1000.0f);
 	be::tim_100hz.start_timer(1.0f/100.0f);
 
-	be::led_r_sequencer.play(Blib::LEDPattern::running);
-	be::led_g_sequencer.play(Blib::LEDPattern::running);
-	be::led_b_sequencer.play(Blib::LEDPattern::running);
+	//初期設定の適用
+	be::flash.read(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
+	if(be::init_params.f_state == Clib::FlashState::RESET){
+		be::led_r_sequencer.play(Blib::LEDPattern::error);
+		be::led_g_sequencer.play(Blib::LEDPattern::error);
+		be::led_b_sequencer.play(Blib::LEDPattern::error);
+		for(auto &m:be::motor){
+			m.write_motor_control_param(be::default_init_param);
+		}
+	}else{
+		be::led_r_sequencer.play(Blib::LEDPattern::running);
+		be::led_g_sequencer.play(Blib::LEDPattern::running);
+		be::led_b_sequencer.play(Blib::LEDPattern::running);
+		for(size_t i = 0; i < be::MOTOR_N; i++){
+			be::motor[i].write_motor_control_param(be::init_params.param[i]);
+		}
+	}
 
 	//メインループ
 	while(1){
