@@ -42,7 +42,8 @@ struct MotorControlParam{
 };
 
 class MotorUnit{
-	bool is_active = false;
+	bool is_active = true;
+	bool estimate_motor_type = true;
 
 	uint8_t rm_mode_tmp = 0;
 	MReg::VescMode vesc_mode_tmp = MReg::VescMode::NOP;
@@ -186,20 +187,21 @@ public:
 		MReg::RobomasMD md = static_cast<MReg::RobomasMD>((c_val >> 2) & 0b1);
 		bool use_dob = ((c_val >> 4)&0b1) == 0b1;
 		bool use_abs_enc = ((c_val >> 5)&0b1) == 0b1;
-		bool est_m_type = ((c_val >> 6)&0b1) == 0b1;
+		estimate_motor_type = ((c_val >> 6)&0b1) == 0b1;
 
 		rm_motor.set_control_mode(mode);
 		rm_motor.set_motor_type(md);
 		rm_motor.use_abs_enc(use_abs_enc);
 		rm_motor.use_dob(use_dob);
-		rm_motor.estimate_motor_type(est_m_type);
+		rm_motor.estimate_motor_type(estimate_motor_type);
 	}
 
 	uint8_t get_control_mode(void)const{
 		return static_cast<uint8_t>(rm_motor.get_control_mode())
 				| (static_cast<uint8_t>(rm_motor.get_motor_type()) << 2)
-				| (rm_motor.is_using_dob()?0b0001'0000:0)
-				| (rm_motor.is_using_abs_enc()?0b0010'0000:0);
+				| (rm_motor.is_using_dob() ? 0b0001'0000 : 0)
+				| (rm_motor.is_using_abs_enc() ? 0b0010'0000 : 0)
+				| (estimate_motor_type ? 0b0100'0000 : 0);
 	}
 
 	void update_led_pattern(void){
