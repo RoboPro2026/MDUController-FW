@@ -55,7 +55,7 @@ public:
 	float vesc_value = 0.0f;
 
 	CommonLib::GPIO led;
-	CommonLib::Sequencer led_sequence;
+	CommonLib::Sequencer led_sequencer;
 
 	const CommonLib::Note* led_playing_pattern;
 
@@ -77,7 +77,7 @@ public:
 		rm_motor(std::move(_rm_motor)),
 		vesc_motor(std::move(_vesc_motor)),
 		led(led_port,led_pin),
-		led_sequence([&](float v){led(v>0.0f);}),
+		led_sequencer([&](float v){led(v>0.0f);}),
 		led_playing_pattern(BoardLib::LEDPattern::led_mode_indicate[0][0]),
 		timeout_tim(_timeout_tim),
 		monitor_tim(_monitor_tim),
@@ -205,7 +205,7 @@ public:
 	}
 
 	void update_led_pattern(void){
-		led_sequence.play(BoardLib::LEDPattern::led_mode_indicate[rm_motor.is_using_abs_enc() ? 1 : 0][static_cast<size_t>(rm_motor.get_control_mode())]);
+		led_sequencer.play(BoardLib::LEDPattern::led_mode_indicate[rm_motor.is_using_abs_enc() ? 1 : 0][static_cast<size_t>(rm_motor.get_control_mode())]);
 	}
 
 	void write_motor_control_param(const MotorControlParam &p){

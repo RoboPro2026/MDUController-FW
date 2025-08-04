@@ -392,9 +392,9 @@ namespace Task{
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 extern "C"
 void cppmain(void){
-
 	be::board_id = Task::read_board_id();
 
+	//LEDの設定
 	be::led_r.set_period(1000);
 	be::led_g.set_period(1000);
 	be::led_b.set_period(1000);
@@ -402,6 +402,7 @@ void cppmain(void){
 	be::led_g.start();
 	be::led_b.start();
 
+	//CAN設定
 	be::can_main.set_filter(0,
 			static_cast<size_t>(Clib::Protocol::DataType::MDC2_ID)<<16 | (be::board_id<<16),
 			0x00FF'0000,Clib::CanFilterMode::ONLY_EXT);
@@ -410,6 +411,7 @@ void cppmain(void){
 	be::can_md.set_filter_free(0,Clib::CanFilterMode::ONLY_STD);
 	be::can_md.start();
 
+	//タイマー設定
 	be::tim_1khz.set_task([](){
 		Task::can_transmit_to_robomas_motor();
 
@@ -420,6 +422,7 @@ void cppmain(void){
 		for(auto& m:be::motor){
 			if(m.rm_motor.abs_enc){
 				m.rm_motor.abs_enc->read_start();
+				m.led_sequencer.update();
 			}
 		}
 	});
@@ -438,7 +441,7 @@ void cppmain(void){
 	be::tim_1khz.start_timer(1.0f/1000.0f);
 	be::tim_100hz.start_timer(1.0f/100.0f);
 
-	//初期設定の適用
+	//モータ初期値の適用
 	be::flash.read(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
 	if(be::init_params.f_state == Clib::FlashState::RESET){
 		be::led_r_sequencer.play(Blib::LEDPattern::error);
@@ -510,7 +513,7 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
 	size_t id = rx_frame.value().id - 0x201;
 	if(id <= 3){
 		if(be::motor[id].rm_motor.update(rx_frame.value())){
-			be::motor[id].led_sequence.update();
+			be::motor[id].update_led_pattern();
 		}
 	}
 }
