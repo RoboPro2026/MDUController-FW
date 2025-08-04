@@ -20,37 +20,39 @@
 
 namespace CommonLib{
 
-	struct FdCanRxFifoParams{
-		uint32_t no;
-		uint32_t filter;
-		uint32_t it;
-		uint32_t it_buff;
-	};
-
-	constexpr FdCanRxFifoParams FdCanRxFifo0 = {
-			FDCAN_RX_FIFO0,
-			FDCAN_FILTER_TO_RXFIFO0,
-			FDCAN_IT_RX_FIFO0_NEW_MESSAGE,
-			FDCAN_FLAG_RX_FIFO0_NEW_MESSAGE
-	};
-	constexpr FdCanRxFifoParams FdCanRxFifo1 = {
-			FDCAN_RX_FIFO1,
-			FDCAN_FILTER_TO_RXFIFO1,
-			FDCAN_IT_RX_FIFO1_NEW_MESSAGE,
-			FDCAN_FLAG_RX_FIFO1_NEW_MESSAGE
-	};
-
-
 	class FdCanComm:public ICan{
+	//FIFOの設定定数
+	public:
+		struct RxFifoParams{
+			uint32_t no;
+			uint32_t filter;
+			uint32_t it;
+			uint32_t it_buff;
+		};
+		static constexpr RxFifoParams RxFifo0 = {
+				FDCAN_RX_FIFO0,
+				FDCAN_FILTER_TO_RXFIFO0,
+				FDCAN_IT_RX_FIFO0_NEW_MESSAGE,
+				FDCAN_FLAG_RX_FIFO0_NEW_MESSAGE
+		};
+		static constexpr RxFifoParams RxFifo1 = {
+				FDCAN_RX_FIFO1,
+				FDCAN_FILTER_TO_RXFIFO1,
+				FDCAN_IT_RX_FIFO1_NEW_MESSAGE,
+				FDCAN_FLAG_RX_FIFO1_NEW_MESSAGE
+		};
+
+	//クラス本体
+	private:
 		FDCAN_HandleTypeDef* const fdcan;
 
 		std::unique_ptr<IRingBuffer<CanFrame> > rx_buff;
 		std::unique_ptr<IRingBuffer<CanFrame> > tx_buff;
 
-		const FdCanRxFifoParams &rx_fifo;
+		const RxFifoParams &rx_fifo;
 
 	public:
-		FdCanComm(FDCAN_HandleTypeDef *_fdcan,std::unique_ptr<IRingBuffer<CanFrame>> _rx_buff,std::unique_ptr<IRingBuffer<CanFrame>> &&_tx_buff,const FdCanRxFifoParams &_rx_fifo)
+		FdCanComm(FDCAN_HandleTypeDef *_fdcan,std::unique_ptr<IRingBuffer<CanFrame>> _rx_buff,std::unique_ptr<IRingBuffer<CanFrame>> &&_tx_buff,const RxFifoParams &_rx_fifo)
 			:fdcan(_fdcan),
 		 	 rx_buff(std::move(_rx_buff)),
 			 tx_buff(std::move(_tx_buff)),

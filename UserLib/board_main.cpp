@@ -16,7 +16,7 @@
 #include "CommonLib/timer_interruption_control.hpp"
 #include "CommonLib/usb_cdc.hpp"
 #include "CommonLib/sequencer.hpp"
-#include "flash_management.hpp"
+#include "CommonLib/flash_management.hpp"
 
 #include "LED_pattern.hpp"
 #include "control_unit.hpp"
@@ -66,7 +66,7 @@ namespace BoardElement{
 	constexpr size_t MOTOR_N = 4;
 
 	constexpr auto default_init_param = Blib::MotorControlParam{
-		.mode = 0b0100'0000,
+		.rm_mode = 0b0000'0000,
 		.trq_limit = 1.0f,
 		.spd_gain_p = 0.5f,
 		.spd_gain_i = 0.1f,
@@ -78,11 +78,16 @@ namespace BoardElement{
 		.pos_gain_d = 0.0f,
 
 		.dob_j = 0.0004f,
-		.dob_d = 0.0005f
+		.dob_d = 0.0005f,
+		.dob_lpf_cutoff_freq = 5.0f,
+
+		.abs_gear_ratio = 1.0f,
+
+		.vesc_mode = MReg::VescMode::NOP,
 	};
 
 	struct MotorInitParam{
-		int never_writed;
+		Clib::FlashState f_state;
 		std::array<Blib::MotorControlParam,MOTOR_N> param;
 	};
 
@@ -96,7 +101,7 @@ namespace BoardElement{
 				new(TmpMemoryPool::can_main_tx_buff) Clib::RingBuffer<Clib::CanFrame,5>{}),
 		std::unique_ptr<Clib::RingBuffer<Clib::CanFrame,5>>(
 				new(TmpMemoryPool::can_main_rx_buff) Clib::RingBuffer<Clib::CanFrame,5>{}),
-		Clib::FdCanRxFifo0
+		Clib::FdCanComm::RxFifo0
 	};
 
 	auto can_md = Clib::FdCanComm{
@@ -105,7 +110,7 @@ namespace BoardElement{
 				new(TmpMemoryPool::can_md_tx_buff) Clib::RingBuffer<Clib::CanFrame,5>{}),
 		std::unique_ptr<Clib::RingBuffer<Clib::CanFrame,5>>(
 				new(TmpMemoryPool::can_md_rx_buff) Clib::RingBuffer<Clib::CanFrame,5>{}),
-		Clib::FdCanRxFifo1
+		Clib::FdCanComm::RxFifo1
 	};
 
 	auto usb_cdc = Clib::UsbCdcComm{&hUsbDeviceFS,
@@ -140,32 +145,32 @@ namespace BoardElement{
 				Blib::C6x0ControllerBuilder(0,MReg::RobomasMD::C610)
 					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5)), false)
 					.build(),
-				Blib::VescDataConverter(0),
+				Blib::VescController(0),
 				LED0_GPIO_Port,LED0_Pin,tim_can_timeout,tim_monitor),
 
 		Blib::MotorUnit(
 				Blib::C6x0ControllerBuilder(1,MReg::RobomasMD::C610)
 					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3)), false)
 					.build(),
-				Blib::VescDataConverter(1),
+				Blib::VescController(1),
 				LED1_GPIO_Port,LED1_Pin,tim_can_timeout,tim_monitor),
 
 		Blib::MotorUnit(
 				Blib::C6x0ControllerBuilder(2,MReg::RobomasMD::C610)
 					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1)), false)
 					.build(),
-				Blib::VescDataConverter(2),
+				Blib::VescController(2),
 				LED2_GPIO_Port,LED2_Pin,tim_can_timeout,tim_monitor),
 
 		Blib::MotorUnit(
 				Blib::C6x0ControllerBuilder(3,MReg::RobomasMD::C610)
 					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)), false)
 					.build(),
-				Blib::VescDataConverter(3),
+				Blib::VescController(3),
 				LED3_GPIO_Port,LED3_Pin,tim_can_timeout,tim_monitor)
 	};
 
-	auto flash = Blib::G4FlashRW(FLASH_BANK_2,126,0x807F000);
+	auto flash = Clib::G4FlashRW(FLASH_BANK_2,126,0x807F000);
 }
 
 namespace be = BoardElement;
@@ -217,7 +222,7 @@ namespace Task{
 			for(size_t i = 0; i < be::MOTOR_N; i++){
 				be::motor[i].read_motor_control_param(be::init_params.param[i]);
 			}
-			be::init_params.never_writed = 0;
+			be::init_params.f_state = Clib::FlashState::WRITED;
 			be::flash.write(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
 			be::led_g_sequencer.play(Blib::LEDPattern::error, true);
 			return std::nullopt;
@@ -226,7 +231,7 @@ namespace Task{
 				be::motor[i].write_motor_control_param(be::default_init_param);
 				be::init_params.param[i] = be::default_init_param;
 			}
-			be::init_params.never_writed = 0;
+			be::init_params.f_state = Clib::FlashState::RESET;
 			be::flash.write(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
 			be::led_g_sequencer.play(Blib::LEDPattern::error, true);
 			return std::nullopt;
@@ -346,7 +351,7 @@ namespace Task{
 	///////////////////////////////////////////////////////////////////////////
 	void can_transmit_to_vesc(void){
 		for(auto &m:be::motor){
-			auto tx_frame = m.vesc_motor.generate_frame(m.vesc_value);
+			auto tx_frame = m.vesc_motor.get_frame();
 			if(tx_frame.has_value()){
 				be::can_md.tx(tx_frame.value());
 			}
@@ -392,20 +397,9 @@ namespace Task{
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 extern "C"
 void cppmain(void){
-	//初期設定の適用
-	be::flash.read(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
-	if(be::init_params.never_writed == -1){
-		for(auto &m:be::motor){
-			m.write_motor_control_param(be::default_init_param);
-		}
-	}else{
-		for(size_t i = 0; i < be::MOTOR_N; i++){
-			be::motor[i].write_motor_control_param(be::init_params.param[i]);
-		}
-	}
-
 	be::board_id = Task::read_board_id();
 
+	//LEDの設定
 	be::led_r.set_period(1000);
 	be::led_g.set_period(1000);
 	be::led_b.set_period(1000);
@@ -413,6 +407,7 @@ void cppmain(void){
 	be::led_g.start();
 	be::led_b.start();
 
+	//CAN設定
 	be::can_main.set_filter(0,
 			static_cast<size_t>(Clib::Protocol::DataType::MDC2_ID)<<16 | (be::board_id<<16),
 			0x00FF'0000,Clib::CanFilterMode::ONLY_EXT);
@@ -421,6 +416,7 @@ void cppmain(void){
 	be::can_md.set_filter_free(0,Clib::CanFilterMode::ONLY_STD);
 	be::can_md.start();
 
+	//タイマー設定
 	be::tim_1khz.set_task([](){
 		Task::can_transmit_to_robomas_motor();
 
@@ -431,6 +427,8 @@ void cppmain(void){
 		for(auto& m:be::motor){
 			if(m.rm_motor.abs_enc){
 				m.rm_motor.abs_enc->read_start();
+				m.led_sequencer.update();
+				m.request_report();
 			}
 		}
 	});
@@ -449,9 +447,23 @@ void cppmain(void){
 	be::tim_1khz.start_timer(1.0f/1000.0f);
 	be::tim_100hz.start_timer(1.0f/100.0f);
 
-	be::led_r_sequencer.play(Blib::LEDPattern::running);
-	be::led_g_sequencer.play(Blib::LEDPattern::running);
-	be::led_b_sequencer.play(Blib::LEDPattern::running);
+	//モータ初期値の適用
+	be::flash.read(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
+	if(be::init_params.f_state == Clib::FlashState::RESET){
+		be::led_r_sequencer.play(Blib::LEDPattern::error);
+		be::led_g_sequencer.play(Blib::LEDPattern::error);
+		be::led_b_sequencer.play(Blib::LEDPattern::error);
+		for(auto &m:be::motor){
+			m.write_motor_control_param(be::default_init_param);
+		}
+	}else{
+		be::led_r_sequencer.play(Blib::LEDPattern::running);
+		be::led_g_sequencer.play(Blib::LEDPattern::running);
+		be::led_b_sequencer.play(Blib::LEDPattern::running);
+		for(size_t i = 0; i < be::MOTOR_N; i++){
+			be::motor[i].write_motor_control_param(be::init_params.param[i]);
+		}
+	}
 
 	//メインループ
 	while(1){
@@ -506,9 +518,7 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
 
 	size_t id = rx_frame.value().id - 0x201;
 	if(id <= 3){
-		if(be::motor[id].rm_motor.update(rx_frame.value())){
-			be::motor[id].led_sequence.update();
-		}
+		be::motor[id].operation_report(be::motor[id].rm_motor.update(rx_frame.value()));
 	}
 }
 
