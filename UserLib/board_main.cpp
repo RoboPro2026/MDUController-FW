@@ -66,7 +66,7 @@ namespace BoardElement{
 	constexpr size_t MOTOR_N = 4;
 
 	constexpr auto default_init_param = Blib::MotorControlParam{
-		.mode = 0b0100'0000,
+		.rm_mode = 0b0000'0000,
 		.trq_limit = 1.0f,
 		.spd_gain_p = 0.5f,
 		.spd_gain_i = 0.1f,
@@ -78,7 +78,12 @@ namespace BoardElement{
 		.pos_gain_d = 0.0f,
 
 		.dob_j = 0.0004f,
-		.dob_d = 0.0005f
+		.dob_d = 0.0005f,
+		.dob_lpf_cutoff_freq = 5.0f,
+
+		.abs_gear_ratio = 1.0f,
+
+		.vesc_mode = MReg::VescMode::NOP,
 	};
 
 	struct MotorInitParam{

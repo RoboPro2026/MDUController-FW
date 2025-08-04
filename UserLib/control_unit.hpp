@@ -24,7 +24,7 @@
 namespace BoardLib{
 
 struct MotorControlParam{
-	uint8_t mode;
+	uint8_t rm_mode;
 
 	float trq_limit;
 	float spd_gain_p;
@@ -39,6 +39,10 @@ struct MotorControlParam{
 	float dob_j;
 	float dob_d;
 	float dob_lpf_cutoff_freq;
+
+	float abs_gear_ratio;
+
+	MReg::VescMode vesc_mode;
 };
 
 class MotorUnit{
@@ -85,8 +89,8 @@ public:
 						[&](uint8_t v)mutable{set_control_mode(v);},
 						[&]()->uint8_t{return get_control_mode();}))
 				.add(MReg::ABS_GEAR_RATIO, CommonLib::DataAccessor::generate<bool>(
-						[&](float r)mutable{rm_motor.abs_enc->set_gear_ratio(r);},
-						[&]()->float{return rm_motor.abs_enc->get_gear_ratio();}))
+						[&](float r)mutable{if(rm_motor.abs_enc) rm_motor.abs_enc->set_gear_ratio(r);},
+						[&]()->float{return rm_motor.abs_enc ? rm_motor.abs_enc->get_gear_ratio() : 1.0f;}))
 				.add(MReg::CAL_RQ,         CommonLib::DataAccessor::generate<bool>(
 						[&](bool s)mutable{rm_motor.start_calibration();},
 						[&]()->bool{return rm_motor.is_calibrating();}))
@@ -209,7 +213,7 @@ public:
 	}
 
 	void write_motor_control_param(const MotorControlParam &p){
-		set_control_mode(p.mode);
+		set_control_mode(p.rm_mode);
 		rm_motor.spd_pid.set_p_gain(p.spd_gain_p);
 		rm_motor.spd_pid.set_i_gain(p.spd_gain_i);
 		rm_motor.spd_pid.set_d_gain(p.spd_gain_d);
@@ -223,9 +227,16 @@ public:
 		rm_motor.dob.inverse_model.set_inertia(p.dob_j);
 		rm_motor.dob.inverse_model.set_friction_coef(p.dob_d);
 		rm_motor.dob.set_lpf_cutoff_freq(p.dob_lpf_cutoff_freq);
+
+		if(rm_motor.abs_enc){
+			rm_motor.abs_enc->set_gear_ratio(p.abs_gear_ratio);
+		}
+
+		vesc_motor.set_mode(p.vesc_mode);
+
 	}
 	void read_motor_control_param(MotorControlParam &p){
-		p.mode = get_control_mode();
+		p.rm_mode = get_control_mode();
 		p.spd_gain_p = rm_motor.spd_pid.get_p_gain();
 		p.spd_gain_i = rm_motor.spd_pid.get_i_gain();
 		p.spd_gain_d = rm_motor.spd_pid.get_d_gain();
@@ -241,6 +252,9 @@ public:
 		p.dob_j = rm_motor.dob.inverse_model.get_inertia();
 		p.dob_d = rm_motor.dob.inverse_model.get_friction_coef();
 		p.dob_lpf_cutoff_freq = rm_motor.dob.get_lpf_cutoff_freq();
+
+		p.abs_gear_ratio = rm_motor.abs_enc ? rm_motor.abs_enc->get_gear_ratio() : 1.0f;
+		p.vesc_mode = vesc_motor.get_mode();
 	}
 
 	void emergency_stop(void){
