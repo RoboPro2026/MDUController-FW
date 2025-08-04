@@ -24,7 +24,7 @@ class IFrashRW{
 public:
 	virtual void write(const uint8_t *data,size_t len) = 0;
 	virtual void read(uint8_t *data,size_t len) = 0;
-}
+};
 
 #ifdef STM32G4xx_HAL_H
 #ifdef HAL_FLASH_MODULE_ENABLED

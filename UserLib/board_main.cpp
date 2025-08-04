@@ -140,28 +140,28 @@ namespace BoardElement{
 				Blib::C6x0ControllerBuilder(0,MReg::RobomasMD::C610)
 					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5)), false)
 					.build(),
-				Blib::VescDataConverter(0),
+				Blib::VescController(0),
 				LED0_GPIO_Port,LED0_Pin,tim_can_timeout,tim_monitor),
 
 		Blib::MotorUnit(
 				Blib::C6x0ControllerBuilder(1,MReg::RobomasMD::C610)
 					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3)), false)
 					.build(),
-				Blib::VescDataConverter(1),
+				Blib::VescController(1),
 				LED1_GPIO_Port,LED1_Pin,tim_can_timeout,tim_monitor),
 
 		Blib::MotorUnit(
 				Blib::C6x0ControllerBuilder(2,MReg::RobomasMD::C610)
 					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1)), false)
 					.build(),
-				Blib::VescDataConverter(2),
+				Blib::VescController(2),
 				LED2_GPIO_Port,LED2_Pin,tim_can_timeout,tim_monitor),
 
 		Blib::MotorUnit(
 				Blib::C6x0ControllerBuilder(3,MReg::RobomasMD::C610)
 					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)), false)
 					.build(),
-				Blib::VescDataConverter(3),
+				Blib::VescController(3),
 				LED3_GPIO_Port,LED3_Pin,tim_can_timeout,tim_monitor)
 	};
 
@@ -346,7 +346,7 @@ namespace Task{
 	///////////////////////////////////////////////////////////////////////////
 	void can_transmit_to_vesc(void){
 		for(auto &m:be::motor){
-			auto tx_frame = m.vesc_motor.generate_frame(m.vesc_value);
+			auto tx_frame = m.vesc_motor.get_frame();
 			if(tx_frame.has_value()){
 				be::can_md.tx(tx_frame.value());
 			}

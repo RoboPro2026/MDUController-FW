@@ -50,9 +50,7 @@ class MotorUnit{
 
 public:
 	C6x0Controller rm_motor;
-
-	VescDataConverter vesc_motor;
-	float vesc_value = 0.0f;
+	VescController vesc_motor;
 
 	CommonLib::GPIO led;
 	CommonLib::Sequencer led_sequencer;
@@ -68,7 +66,7 @@ public:
 
 	MotorUnit(
 			C6x0Controller &&_rm_motor,
-			VescDataConverter &&_vesc_motor,
+			VescController &&_vesc_motor,
 			GPIO_TypeDef *led_port,
 			uint_fast16_t led_pin,
 			std::shared_ptr<CommonLib::InterruptionTimerHard> _timeout_tim,
@@ -163,7 +161,9 @@ public:
 				.add(MReg::VESC_MODE,      CommonLib::DataAccessor::generate<uint8_t>(
 						[&](uint8_t m)mutable{vesc_motor.set_mode(static_cast<MReg::VescMode>(m));},
 						[&]()->uint8_t{return static_cast<uint8_t>(vesc_motor.get_mode());}))
-				.add(MReg::VESC_TARGET,    CommonLib::DataAccessor::generate<float>(&vesc_value))
+				.add(MReg::VESC_TARGET,    CommonLib::DataAccessor::generate<float>(
+						[&](float v)mutable{vesc_motor.set_value(v);},
+						[&]()->float{return vesc_motor.get_value();}))
 				
 				.add(MReg::MONITOR_PERIOD, CommonLib::DataAccessor::generate<uint16_t>(
 						[&](uint16_t p)mutable{
