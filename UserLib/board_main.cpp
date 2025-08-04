@@ -428,6 +428,7 @@ void cppmain(void){
 			if(m.rm_motor.abs_enc){
 				m.rm_motor.abs_enc->read_start();
 				m.led_sequencer.update();
+				m.request_report();
 			}
 		}
 	});
@@ -517,9 +518,7 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
 
 	size_t id = rx_frame.value().id - 0x201;
 	if(id <= 3){
-		if(be::motor[id].rm_motor.update(rx_frame.value())){
-			be::motor[id].update_led_pattern();
-		}
+		be::motor[id].operation_report(be::motor[id].rm_motor.update(rx_frame.value()));
 	}
 }
 

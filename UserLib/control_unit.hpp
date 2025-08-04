@@ -46,6 +46,7 @@ struct MotorControlParam{
 };
 
 class MotorUnit{
+	bool activity_report = false;
 	bool is_active = true;
 	bool estimate_motor_type = true;
 
@@ -209,7 +210,11 @@ public:
 	}
 
 	void update_led_pattern(void){
-		led_sequencer.play(BoardLib::LEDPattern::led_mode_indicate[rm_motor.is_using_abs_enc() ? 1 : 0][static_cast<size_t>(rm_motor.get_control_mode())]);
+		if(is_active){
+			led_sequencer.play(BoardLib::LEDPattern::led_mode_indicate[rm_motor.is_using_abs_enc() ? 1 : 0][static_cast<size_t>(rm_motor.get_control_mode())]);
+		}else if(vesc_motor.get_mode() != MReg::VescMode::NOP){
+			led_sequencer.play(BoardLib::LEDPattern::vesc_only);
+		}
 	}
 
 	void write_motor_control_param(const MotorControlParam &p){
@@ -256,6 +261,15 @@ public:
 		p.abs_gear_ratio = rm_motor.abs_enc ? rm_motor.abs_enc->get_gear_ratio() : 1.0f;
 		p.vesc_mode = vesc_motor.get_mode();
 	}
+
+	void operation_report(bool running_normally){
+		activity_report = running_normally;
+	}
+	void request_report(void){
+		is_active = activity_report;
+		activity_report = false;
+	}
+
 
 	void emergency_stop(void){
 		rm_mode_tmp = get_rm_control_mode();
