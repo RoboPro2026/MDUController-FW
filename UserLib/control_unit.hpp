@@ -86,8 +86,8 @@ public:
 		id_map(CommonLib::IDMapBuilder()
 				.add(MReg::MOTOR_STATE,    CommonLib::DataAccessor::generate<bool>(&is_active))
 				.add(MReg::CONTROL,        CommonLib::DataAccessor::generate<uint8_t>(
-						[&](uint8_t v)mutable{set_control_mode(v);},
-						[&]()->uint8_t{return get_control_mode();}))
+						[&](uint8_t v)mutable{set_rm_control_mode(v);},
+						[&]()->uint8_t{return get_rm_control_mode();}))
 				.add(MReg::ABS_GEAR_RATIO, CommonLib::DataAccessor::generate<bool>(
 						[&](float r)mutable{if(rm_motor.abs_enc) rm_motor.abs_enc->set_gear_ratio(r);},
 						[&]()->float{return rm_motor.abs_enc ? rm_motor.abs_enc->get_gear_ratio() : 1.0f;}))
@@ -181,10 +181,10 @@ public:
 				
 				.build()){
 
-		set_control_mode(0b0100'0000);
+		set_rm_control_mode(0b0000'0000);
 	}
 
-	void set_control_mode(uint8_t c_val){
+	void set_rm_control_mode(uint8_t c_val){
 		MReg::ControlMode mode = static_cast<MReg::ControlMode>(c_val&0b11);
 		if(static_cast<size_t>(mode) == 0b11) return;
 
@@ -200,7 +200,7 @@ public:
 		rm_motor.estimate_motor_type(estimate_motor_type);
 	}
 
-	uint8_t get_control_mode(void)const{
+	uint8_t get_rm_control_mode(void)const{
 		return static_cast<uint8_t>(rm_motor.get_control_mode())
 				| (static_cast<uint8_t>(rm_motor.get_motor_type()) << 2)
 				| (rm_motor.is_using_dob() ? 0b0001'0000 : 0)
@@ -213,7 +213,7 @@ public:
 	}
 
 	void write_motor_control_param(const MotorControlParam &p){
-		set_control_mode(p.rm_mode);
+		set_rm_control_mode(p.rm_mode);
 		rm_motor.spd_pid.set_p_gain(p.spd_gain_p);
 		rm_motor.spd_pid.set_i_gain(p.spd_gain_i);
 		rm_motor.spd_pid.set_d_gain(p.spd_gain_d);
@@ -236,7 +236,7 @@ public:
 
 	}
 	void read_motor_control_param(MotorControlParam &p){
-		p.rm_mode = get_control_mode();
+		p.rm_mode = get_rm_control_mode();
 		p.spd_gain_p = rm_motor.spd_pid.get_p_gain();
 		p.spd_gain_i = rm_motor.spd_pid.get_i_gain();
 		p.spd_gain_d = rm_motor.spd_pid.get_d_gain();
@@ -258,14 +258,14 @@ public:
 	}
 
 	void emergency_stop(void){
-		rm_mode_tmp = get_control_mode();
+		rm_mode_tmp = get_rm_control_mode();
 		vesc_mode_tmp = vesc_motor.get_mode();
-		set_control_mode(0);
+		set_rm_control_mode(0);
 		vesc_motor.set_mode(MReg::VescMode::NOP);
 		rm_motor.set_torque(0.0);
 	}
 	void emergency_stop_release(void){
-		set_control_mode(rm_mode_tmp);
+		set_rm_control_mode(rm_mode_tmp);
 		vesc_motor.set_mode(vesc_mode_tmp);
 	}
 };
