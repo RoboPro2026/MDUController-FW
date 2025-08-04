@@ -266,6 +266,7 @@ namespace Task{
 		if(not dp.has_value()) return;
 
 		be::led_b_sequencer.play(Blib::LEDPattern::ok);
+		be::tim_can_timeout->reset_timer_count();
 
 		std::optional<Clib::Protocol::DataPacket> return_pack;
 		switch(dp.value().data_type){
@@ -300,6 +301,9 @@ namespace Task{
 		Clib::CanFrame rx_frame = Clib::SLCAN::slcan_packed_to_can(rx_str.value());
 		auto dp = rx_frame.encode_common_data_packet();
 		if(not dp.has_value()) return;
+
+		be::led_b_sequencer.play(Blib::LEDPattern::ok);
+		be::tim_can_timeout->reset_timer_count();
 
 		std::optional<Clib::Protocol::DataPacket> return_pack;
 		switch(dp.value().data_type){
