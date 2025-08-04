@@ -96,7 +96,7 @@ namespace BoardElement{
 				new(TmpMemoryPool::can_main_tx_buff) Clib::RingBuffer<Clib::CanFrame,5>{}),
 		std::unique_ptr<Clib::RingBuffer<Clib::CanFrame,5>>(
 				new(TmpMemoryPool::can_main_rx_buff) Clib::RingBuffer<Clib::CanFrame,5>{}),
-		Clib::FdCanRxFifo0
+		Clib::FdCanComm::RxFifo0
 	};
 
 	auto can_md = Clib::FdCanComm{
@@ -105,7 +105,7 @@ namespace BoardElement{
 				new(TmpMemoryPool::can_md_tx_buff) Clib::RingBuffer<Clib::CanFrame,5>{}),
 		std::unique_ptr<Clib::RingBuffer<Clib::CanFrame,5>>(
 				new(TmpMemoryPool::can_md_rx_buff) Clib::RingBuffer<Clib::CanFrame,5>{}),
-		Clib::FdCanRxFifo1
+		Clib::FdCanComm::RxFifo1
 	};
 
 	auto usb_cdc = Clib::UsbCdcComm{&hUsbDeviceFS,
