@@ -23,9 +23,9 @@ class InterruptionTimerHard{
 private:
 	TIM_HandleTypeDef *tim;
 	bool first_interrupt_flag = false;
+	std::function<void(void)> task = nullptr;
 
 #if (USE_HAL_TIM_REGISTER_CALLBACKS == 1)
-	std::function<void(void)> task = nullptr;
 	static std::unordered_map<TIM_HandleTypeDef *,std::function<void(void)>> callbacks;
 	static void callback(TIM_HandleTypeDef *htim){
 		auto iter = callbacks.find(htim);

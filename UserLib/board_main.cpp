@@ -535,18 +535,17 @@ void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t Bu
 }
 
 //timer
-//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-//{
-//	if(htim == be::tim_1khz.get_handler()){
-//		be::tim_1khz.interrupt_task(htim);
-//	}else if(htim == be::tim_monitor->get_handler()){
-//		be::tim_monitor->interrupt_task(htim);
-//	}else if(htim == be::tim_can_timeout->get_handler()){
-//		be::tim_can_timeout->interrupt_task(htim);
-//	}else if(htim == be::tim_100hz.get_handler()){
-//		be::tim_100hz.interrupt_task(htim);
-//	}
-//}
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+	if(htim == be::tim_1khz.get_handler()){
+		be::tim_1khz.interrupt_task();
+	}else if(htim == be::tim_monitor->get_handler()){
+		be::tim_monitor->interrupt_task();
+	}else if(htim == be::tim_can_timeout->get_handler()){
+		be::tim_can_timeout->interrupt_task();
+	}else if(htim == be::tim_100hz.get_handler()){
+		be::tim_100hz.interrupt_task();
+	}
+}
 
 extern "C"{
 int _write(int file, char *ptr, int len) {
