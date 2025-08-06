@@ -72,7 +72,7 @@ namespace BoardElement{
 		.spd_gain_i = 0.1f,
 		.spd_gain_d = 0.0f,
 
-		.spd_limit = 314.0f,
+		.spd_limit = 10.0f,
 		.pos_gain_p = 5.0f,
 		.pos_gain_i = 0.0f,
 		.pos_gain_d = 0.0f,
@@ -535,18 +535,18 @@ void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t Bu
 }
 
 //timer
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-	if(htim == be::tim_1khz.get_handler()){
-		be::tim_1khz.interrupt_task();
-	}else if(htim == be::tim_monitor->get_handler()){
-		be::tim_monitor->interrupt_task();
-	}else if(htim == be::tim_can_timeout->get_handler()){
-		be::tim_can_timeout->interrupt_task();
-	}else if(htim == be::tim_100hz.get_handler()){
-		be::tim_100hz.interrupt_task();
-	}
-}
+//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+//{
+//	if(htim == be::tim_1khz.get_handler()){
+//		be::tim_1khz.interrupt_task(htim);
+//	}else if(htim == be::tim_monitor->get_handler()){
+//		be::tim_monitor->interrupt_task(htim);
+//	}else if(htim == be::tim_can_timeout->get_handler()){
+//		be::tim_can_timeout->interrupt_task(htim);
+//	}else if(htim == be::tim_100hz.get_handler()){
+//		be::tim_100hz.interrupt_task(htim);
+//	}
+//}
 
 extern "C"{
 int _write(int file, char *ptr, int len) {

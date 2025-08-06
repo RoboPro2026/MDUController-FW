@@ -14,6 +14,7 @@
 
 #include "timer_helper.hpp"
 #include <functional>
+#include <unordered_map>
 
 namespace CommonLib{
 
@@ -23,10 +24,25 @@ private:
 	TIM_HandleTypeDef *tim;
 	bool first_interrupt_flag = false;
 
+#if (USE_HAL_TIM_REGISTER_CALLBACKS == 1)
 	std::function<void(void)> task = nullptr;
+	static std::unordered_map<TIM_HandleTypeDef *,std::function<void(void)>> callbacks;
+	static void callback(TIM_HandleTypeDef *htim){
+		auto iter = callbacks.find(htim);
+		if(iter == callbacks.end()){
+
+		}else{
+			iter->second();
+		}
+	}
+#endif
+
+
 public:
 	InterruptionTimerHard(TIM_HandleTypeDef *_tim,std::function<void(void)> _task = nullptr)
-	:tim(_tim),task(_task){}
+	:tim(_tim),task(_task){
+
+	}
 
 	bool start_timer(float period_s){ //秒単位で指定,0入力で停止
 		uint32_t freq = TimerHelper::get_timer_clock_freq(tim->Instance);
@@ -36,6 +52,11 @@ public:
 			first_interrupt_flag = false;
 			return false;
 		}else{
+#if (USE_HAL_TIM_REGISTER_CALLBACKS == 1)
+		callbacks.insert(std::pair(tim,[&](){this->interrupt_task();}));
+		HAL_TIM_RegisterCallback(tim, HAL_TIM_PERIOD_ELAPSED_CB_ID,callback);
+#endif
+
 			__HAL_TIM_SET_AUTORELOAD(tim,period-1);
 			__HAL_TIM_SET_COUNTER(tim,0);
 			//手動でcnt=0としているのでARPEの設定は不要
@@ -84,6 +105,10 @@ public:
 		}
 	}
 };
+
+#if (USE_HAL_TIM_REGISTER_CALLBACKS == 1)
+inline std::unordered_map<TIM_HandleTypeDef *,std::function<void(void)>> InterruptionTimerHard::callbacks;
+#endif
 }
 
 
