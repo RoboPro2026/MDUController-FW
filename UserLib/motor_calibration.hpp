@@ -18,8 +18,7 @@ class CalibrationManager{
 private:
 	const int measurement_n;
 	const float update_period;
-	float on_torque;
-	float target_spd;
+	float steady_spd;
 
 	const int start_up_time;
 	const int on_hold_time;
@@ -47,21 +46,26 @@ private:
 	CommonLib::Math::LowpassFilterBD<float> lpf;
 
 public:
+	enum class Result:int8_t{
+		OK,
+		Continuation,
+		ERROR
+	};
+
 	//測定回数，測定周波数，印加トルク，収束するまでの目安時間
-	CalibrationManager(int _measurement_n = 4,float update_freq = 1000.0f,float _on_torque = 0.1f,float settling_time = 5.0f)
+	CalibrationManager(int _measurement_n = 4,float update_freq = 1000.0f,float _steady_spd = 20.0f,float settling_time = 5.0f)
 	:measurement_n(_measurement_n),
 	 update_period(1.0f/update_freq),
-	 on_torque(_on_torque),
-	 target_spd(10.0f),
+	 steady_spd(_steady_spd),
 	 start_up_time(static_cast<int>(settling_time*update_freq*0.02f)),
 	 on_hold_time(static_cast<int>(settling_time*update_freq*1.0f)),
 	 off_time(static_cast<int>(settling_time*update_freq*1.0f)),
-	 pi(CommonLib::Math::PIBuilder(update_freq).set_gain(0.5, 0.1).set_limit(_on_torque).build()),
+	 pi(CommonLib::Math::PIBuilder(update_freq).set_gain(0.5, 0.1).set_limit(1.0f).build()),
 	 lpf(update_freq,50.0f){
 	}
 
 	//[モーターに印加するトルク，キャリブレーション処理を継続するか]
-	std::pair<float,bool> calibration(float spd,float trq){
+	std::pair<float,Result> calibration(float spd,float trq){
 		switch(state){
 		case State::ACCELERATION:
 			error = false;
@@ -74,11 +78,11 @@ public:
 				max_spd = spd;
 				cnt = 0;
 				state = State::DECELERATION;
-				return std::pair<float,bool>{0.0f,true};
+				return std::pair<float,Result>{0.0f,Result::Continuation};
 			}else{
-				float commnad_trq = pi(target_spd,spd);
+				float commnad_trq = pi(steady_spd,spd);
 				lpf(commnad_trq);
-				return std::pair<float,bool>{commnad_trq,true};
+				return std::pair<float,Result>{commnad_trq,Result::Continuation};
 			}
 		case State::DECELERATION:
 			cnt ++;
@@ -87,7 +91,7 @@ public:
 				cnt = 0;
 				state = State::OFF;
 			}
-			return std::pair<float,bool>{0.0f,true};
+			return std::pair<float,Result>{0.0f,Result::Continuation};
 		case State::OFF:
 			cnt ++;
 			if(cnt > off_time){//十分減速するまで待機
@@ -97,21 +101,24 @@ public:
 
 				loop_cnt ++;
 				state = State::ACCELERATION;
-				if(loop_cnt >= measurement_n || error){ //規定回数測定
+				if(loop_cnt >= measurement_n){ //規定回数測定
 					loop_cnt = 0;
 					J_ave /= measurement_n;
 					D_ave /= measurement_n;
-					return std::pair<float,bool>{0.0f,false};
+					return std::pair<float,Result>{0.0f,Result::OK};
+				}else if(error){
+					loop_cnt = 0;
+					return std::pair<float,Result>{0.0f,Result::ERROR};
 				}else{ //測定継続
-					target_spd *= -1.0f;
+					steady_spd *= -1.0f;
 					pi.reset();
-					return std::pair<float,bool>{0.0f,true};
+					return std::pair<float,Result>{0.0f,Result::Continuation};
 				}
 			}else{
-				return std::pair<float,bool>{0.0f,true};
+				return std::pair<float,Result>{0.0f,Result::Continuation};
 			}
 		}
-		return std::pair<float,bool>{0.0f,false};
+		return std::pair<float,Result>{0.0f,Result::OK};
 	}
 
 	float get_inertia(void)const{
