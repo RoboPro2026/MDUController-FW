@@ -72,7 +72,7 @@ namespace BoardElement{
 		.spd_gain_i = 0.1f,
 		.spd_gain_d = 0.0f,
 
-		.spd_limit = 314.0f,
+		.spd_limit = 10.0f,
 		.pos_gain_p = 5.0f,
 		.pos_gain_i = 0.0f,
 		.pos_gain_d = 0.0f,

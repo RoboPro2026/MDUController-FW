@@ -203,7 +203,7 @@ private:
 	float pos_kp = 5.0f;
 	float pos_ki = 0.0f;
 	float pos_kd = 0.0f;
-	float spd_limit = 314.0f;
+	float spd_limit = 10.0f;
 
 	bool using_abs_enc = false;
 	std::unique_ptr<IABSEncoder> abs_enc = nullptr;
