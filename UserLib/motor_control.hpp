@@ -37,10 +37,10 @@ private:
 	float rad_origin = 0.0f;
 
 	bool estimate_motor_type_f = true;
-	bool calibration_request = false;
-
 public:
 	CalibrationManager calib_mng;
+	CalibrationManager::Result calibration_state = CalibrationManager::Result::OK;
+
 	CommonLib::Math::PIDController spd_pid;
 	CommonLib::Math::PIDController pos_pid;
 	CommonLib::Math::DisturbanceObserver<BoardLib::MotorInverceModel> dob;
@@ -103,8 +103,8 @@ public:
 	void overwrite_rad(float rad){rad_origin = enc.get_rad() - rad;}
 	float get_overwrited_rad(void)const{return enc.get_rad() - rad_origin;}
 
-	void start_calibration(void){calibration_request = true;}
-	bool is_calibrating(void)const{return calibration_request;}
+	void start_calibration(void){calibration_state = CalibrationManager::Result::Continuation;}
+	CalibrationManager::Result is_calibrating(void)const{return calibration_state;}
 
 	//CANの受信割込みで呼び出し
 	bool update(const CommonLib::CanFrame &frame);
@@ -146,11 +146,11 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 
 	enc.update_by_can_msg(frame);
 
-	if(calibration_request){
+	if(calibration_state == CalibrationManager::Result::Continuation){
 		auto [_torque,_continue] = calib_mng.calibration(enc.get_rad_speed(),enc.get_torque());
-		calibration_request = _continue;
+		calibration_state = _continue;
 		torque = _torque;
-		if(not calibration_request && not calib_mng.is_failed()){
+		if(calibration_state == CalibrationManager::Result::OK  && not calib_mng.is_failed()){
 			dob.inverse_model.set_inertia(calib_mng.get_inertia());
 			dob.inverse_model.set_friction_coef(calib_mng.get_friction_coef());
 		}
@@ -214,9 +214,9 @@ private:
 	float dob_lpf_cutoff_freq = 5.0f;
 	float dob_lpf_q_factor = 1.0f;
 
-	int calib_measurement_n = 6;
-	float calib_on_torque = 0.1f; //TODO:なんか0.1とかにするとシミュできない
-	float calib_settling_time = 5.0f;
+	int calib_measurement_n = 4;
+	float calib_steady_spd = 20.0f; //TODO:なんか0.1とかにするとシミュできない
+	float calib_settling_time = 2.0f;
 public:
 	C6x0ControllerBuilder(size_t _motor_id,MReg::RobomasMD _m_type,MReg::ControlMode _c_mode = MReg::ControlMode::OPEN_LOOP,float _update_freq = 1000.0f){
 		motor_id = _motor_id;
@@ -250,9 +250,9 @@ public:
 		dob_lpf_q_factor = _dob_lpf_q_factor;
 		return *this;
 	}
-	C6x0ControllerBuilder& set_calibration_param(int _measurement_n,float _on_torque = 0.1f,float _settling_time = 5.0f){
+	C6x0ControllerBuilder& set_calibration_param(int _measurement_n,float _steady_spd = 20.0f,float _settling_time = 5.0f){
 		calib_measurement_n = _measurement_n;
-		calib_on_torque = _on_torque;
+		calib_steady_spd = _steady_spd;
 		calib_settling_time = _settling_time;
 		return *this;
 	}
@@ -267,7 +267,7 @@ public:
 					BoardLib::CalibrationManager(
 							calib_measurement_n,
 							update_freq,
-							calib_on_torque,
+							calib_steady_spd,
 							calib_settling_time),
 					CommonLib::Math::PIDBuilder(update_freq)
 									.set_gain(spd_kp, spd_ki, spd_kd)

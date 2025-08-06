@@ -92,9 +92,9 @@ public:
 				.add(MReg::ABS_GEAR_RATIO, CommonLib::DataAccessor::generate<bool>(
 						[&](float r)mutable{if(rm_motor.abs_enc) rm_motor.abs_enc->set_gear_ratio(r);},
 						[&]()->float{return rm_motor.abs_enc ? rm_motor.abs_enc->get_gear_ratio() : 1.0f;}))
-				.add(MReg::CAL_RQ,         CommonLib::DataAccessor::generate<bool>(
-						[&](bool s)mutable{rm_motor.start_calibration();},
-						[&]()->bool{return rm_motor.is_calibrating();}))
+				.add(MReg::CAL_RQ,         CommonLib::DataAccessor::generate<int8_t>(
+						[&](int8_t s)mutable{if(s != 0) rm_motor.start_calibration();},
+						[&]()->int8_t{return static_cast<int8_t>(rm_motor.is_calibrating());}))
 				.add(MReg::LOAD_J,         CommonLib::DataAccessor::generate<float>(
 						[&](float j)mutable{rm_motor.dob.inverse_model.set_inertia(j);},
 						[&]()->float{return rm_motor.dob.inverse_model.get_inertia();}))
