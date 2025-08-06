@@ -19,6 +19,7 @@ private:
 	const int measurement_n;
 	const float update_period;
 	float on_torque;
+	float target_spd;
 
 	const int start_up_time;
 	const int on_hold_time;
@@ -51,6 +52,7 @@ public:
 	:measurement_n(_measurement_n),
 	 update_period(1.0f/update_freq),
 	 on_torque(_on_torque),
+	 target_spd(10.0f),
 	 start_up_time(static_cast<int>(settling_time*update_freq*0.02f)),
 	 on_hold_time(static_cast<int>(settling_time*update_freq*1.0f)),
 	 off_time(static_cast<int>(settling_time*update_freq*1.0f)),
@@ -74,7 +76,7 @@ public:
 				state = State::DECELERATION;
 				return std::pair<float,bool>{0.0f,true};
 			}else{
-				float commnad_trq = pi(10.0f,spd);
+				float commnad_trq = pi(target_spd,spd);
 				lpf(commnad_trq);
 				return std::pair<float,bool>{commnad_trq,true};
 			}
@@ -101,7 +103,7 @@ public:
 					D_ave /= measurement_n;
 					return std::pair<float,bool>{0.0f,false};
 				}else{ //測定継続
-					on_torque *= -1.0f;
+					target_spd *= -1.0f;
 					pi.reset();
 					return std::pair<float,bool>{0.0f,true};
 				}
