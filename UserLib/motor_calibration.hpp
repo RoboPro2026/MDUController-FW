@@ -47,9 +47,9 @@ private:
 
 public:
 	enum class Result{
-		OK,
-		MEAS,
-		ERROR = -1
+		OK,   //測定完了
+		MEAS, //測定中
+		ERROR = -1 //測定失敗
 	};
 
 	//測定回数，測定周波数，印加トルク，収束するまでの目安時間

@@ -143,28 +143,28 @@ namespace BoardElement{
 	auto motor = std::array<Blib::MotorUnit,MOTOR_N>{
 		Blib::MotorUnit(
 				Blib::C6x0ControllerBuilder(0,MReg::RobomasMD::C610)
-					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5)), false)
+					.set_abs_enc(std::unique_ptr<Blib::AMT21xEnc>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5)), false)
 					.build(),
 				Blib::VescController(0),
 				LED0_GPIO_Port,LED0_Pin,tim_can_timeout,tim_monitor),
 
 		Blib::MotorUnit(
 				Blib::C6x0ControllerBuilder(1,MReg::RobomasMD::C610)
-					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3)), false)
+					.set_abs_enc(std::unique_ptr<Blib::AMT21xEnc>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3)), false)
 					.build(),
 				Blib::VescController(1),
 				LED1_GPIO_Port,LED1_Pin,tim_can_timeout,tim_monitor),
 
 		Blib::MotorUnit(
 				Blib::C6x0ControllerBuilder(2,MReg::RobomasMD::C610)
-					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1)), false)
+					.set_abs_enc(std::unique_ptr<Blib::AMT21xEnc>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1)), false)
 					.build(),
 				Blib::VescController(2),
 				LED2_GPIO_Port,LED2_Pin,tim_can_timeout,tim_monitor),
 
 		Blib::MotorUnit(
 				Blib::C6x0ControllerBuilder(3,MReg::RobomasMD::C610)
-					.set_abs_enc(std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)), false)
+					.set_abs_enc(std::unique_ptr<Blib::AMT21xEnc>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)), false)
 					.build(),
 				Blib::VescController(3),
 				LED3_GPIO_Port,LED3_Pin,tim_can_timeout,tim_monitor)
@@ -450,6 +450,11 @@ void cppmain(void){
 
 	be::tim_1khz.start_timer(1.0f/1000.0f);
 	be::tim_100hz.start_timer(1.0f/100.0f);
+	for(auto &m:be::motor){
+		if(m.rm_motor.abs_enc){
+			m.rm_motor.abs_enc->init();
+		}
+	}
 
 	//モータ初期値の適用
 	be::flash.read(reinterpret_cast<uint8_t*>(&be::init_params), sizeof(be::MotorInitParam));
@@ -484,31 +489,6 @@ void cppmain(void){
 //割り込み処理
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-//uart(rs485
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-	if(huart == &huart5){
-		be::motor[0].rm_motor.abs_enc->read_finish_task();
-	}else if(huart == &huart3){
-		be::motor[1].rm_motor.abs_enc->read_finish_task();
-	}else if(huart == &hlpuart1){
-		be::motor[2].rm_motor.abs_enc->read_finish_task();
-	}else if(huart == &huart2){
-		be::motor[3].rm_motor.abs_enc->read_finish_task();
-	}
-
-}
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
-	if(huart == &huart5){
-
-	}else if(huart == &huart3){
-
-	}else if(huart == &hlpuart1){
-
-	}else if(huart == &huart2){
-
-	}
-}
-
 //メイン通信用
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs){
 	be::can_main.rx_interrupt_task();
@@ -531,19 +511,6 @@ void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t Bu
 		be::can_main.tx_interrupt_task();
 	}else if(hfdcan == be::can_md.get_handler()){
 		be::can_md.tx_interrupt_task();
-	}
-}
-
-//timer
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	if(htim == be::tim_1khz.get_handler()){
-		be::tim_1khz.interrupt_task();
-	}else if(htim == be::tim_monitor->get_handler()){
-		be::tim_monitor->interrupt_task();
-	}else if(htim == be::tim_can_timeout->get_handler()){
-		be::tim_can_timeout->interrupt_task();
-	}else if(htim == be::tim_100hz.get_handler()){
-		be::tim_100hz.interrupt_task();
 	}
 }
 

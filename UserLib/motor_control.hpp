@@ -36,7 +36,7 @@ private:
 
 	float rad_origin = 0.0f;
 
-	bool estimate_motor_type_f = true;
+	bool est_m_type = true;
 public:
 	CalibrationManager calib_mng;
 	CalibrationManager::Result calibration_state = CalibrationManager::Result::OK;
@@ -78,7 +78,7 @@ public:
 		enc.set_motor_type(m_type);
 	}
 	MReg::RobomasMD get_motor_type(void) const {return motor_type;}
-	void estimate_motor_type(bool enable = true){estimate_motor_type_f = enable;}
+	void estimate_motor_type(bool enable = true){est_m_type = enable;}
 
 	void set_control_mode(MReg::ControlMode _mode);
 	MReg::ControlMode get_control_mode(void)const{ return mode; }
@@ -139,13 +139,13 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 		return false;
 	}
 
-	if(estimate_motor_type_f){
+	if(est_m_type){
 		if(frame.data[6] == 0){
 			set_motor_type(MReg::RobomasMD::C610);
 		}else{
 			set_motor_type(MReg::RobomasMD::C620);
 		}
-		estimate_motor_type_f = false;
+		est_m_type = false;
 	}
 
 	enc.update_by_can_msg(frame);

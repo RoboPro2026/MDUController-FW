@@ -195,10 +195,10 @@ public:
 		MReg::ControlMode mode = static_cast<MReg::ControlMode>(c_val&0b11);
 		if(static_cast<size_t>(mode) == 0b11) return;
 
-		MReg::RobomasMD md = static_cast<MReg::RobomasMD>((c_val >> 2) & 0b1);
-		bool use_dob = ((c_val >> 4)&0b1) == 0b1;
-		bool use_abs_enc = ((c_val >> 5)&0b1) == 0b1;
-		estimate_motor_type = ((c_val >> 6)&0b1) == 0b1;
+		MReg::RobomasMD md = static_cast<MReg::RobomasMD>((c_val >> MReg::ControlBitPos::MOTOR) & 0b1);
+		bool use_dob = ((c_val >> MReg::ControlBitPos::DOB_EN)&0b1) == 0b1;
+		bool use_abs_enc = ((c_val >> MReg::ControlBitPos::ABS_EN)&0b1) == 0b1;
+		estimate_motor_type = ((c_val >> MReg::ControlBitPos::MD_GUESS_EN)&0b1) == 0b1;
 
 		rm_motor.set_control_mode(mode);
 		rm_motor.set_motor_type(md);
@@ -210,9 +210,9 @@ public:
 	uint8_t get_rm_control_mode(void)const{
 		return static_cast<uint8_t>(rm_motor.get_control_mode())
 				| (static_cast<uint8_t>(rm_motor.get_motor_type()) << 2)
-				| (rm_motor.is_using_dob() ? 0b0001'0000 : 0)
-				| (rm_motor.is_using_abs_enc() ? 0b0010'0000 : 0)
-				| (estimate_motor_type ? 0b0100'0000 : 0);
+				| (rm_motor.is_using_dob() ? (1u << MReg::ControlBitPos::DOB_EN) : 0)
+				| (rm_motor.is_using_abs_enc() ? (1u << MReg::ControlBitPos::ABS_EN) : 0)
+				| (estimate_motor_type ? (1u << MReg::ControlBitPos::MD_GUESS_EN) : 0);
 	}
 
 	void update_led_pattern(void){
@@ -244,8 +244,8 @@ public:
 		}
 
 		vesc_motor.set_mode(p.vesc_mode);
-
 	}
+
 	void read_motor_control_param(MotorControlParam &p){
 		p.rm_mode = get_rm_control_mode();
 		p.spd_gain_p = rm_motor.spd_pid.get_p_gain();

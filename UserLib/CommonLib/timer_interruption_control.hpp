@@ -19,6 +19,8 @@
 namespace CommonLib{
 
 //なぜかタイマー割込みを有効にした瞬間も割り込みが発生するのでその対策も兼ねたクラス
+//USE_HAL_TIM_REGISTER_CALLBALS=1の場合、自動でコールバック関数が設定されるため
+//ユーザ側でHAL_TIM_PeriodElapsedCallback関数を設定する必要はない
 class InterruptionTimerHard{
 private:
 	TIM_HandleTypeDef *tim;
@@ -41,7 +43,9 @@ private:
 public:
 	InterruptionTimerHard(TIM_HandleTypeDef *_tim,std::function<void(void)> _task = nullptr)
 	:tim(_tim),task(_task){
-
+#if (USE_HAL_TIM_REGISTER_CALLBACKS == 1)
+		callbacks.insert(std::pair(tim,[&](){this->interrupt_task();}));
+#endif
 	}
 
 	bool start_timer(float period_s){ //秒単位で指定,0入力で停止
@@ -53,7 +57,6 @@ public:
 			return false;
 		}else{
 #if (USE_HAL_TIM_REGISTER_CALLBACKS == 1)
-		callbacks.insert(std::pair(tim,[&](){this->interrupt_task();}));
 		HAL_TIM_RegisterCallback(tim, HAL_TIM_PERIOD_ELAPSED_CB_ID,callback);
 #endif
 

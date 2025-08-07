@@ -87,6 +87,14 @@ namespace MDCRegister{
 	inline constexpr size_t MONITOR_PERIOD = 0x00F0;
 	inline constexpr size_t MONITOR_REG = 0x00F1;
 
+	namespace  ControlBitPos{
+		inline constexpr size_t MODE = 0;
+		inline constexpr size_t MOTOR = 2;
+		inline constexpr size_t DOB_EN = 4;
+		inline constexpr size_t ABS_EN = 5;
+		inline constexpr size_t MD_GUESS_EN = 6;
+	}
+
 	enum class ControlMode:size_t{
 		OPEN_LOOP,
 		SPEED,
