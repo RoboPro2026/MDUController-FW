@@ -46,10 +46,10 @@ private:
 	CommonLib::Math::LowpassFilterBD<float> lpf;
 
 public:
-	enum class Result:int8_t{
+	enum class Result{
 		OK,
-		Continuation,
-		ERROR
+		MEAS,
+		ERROR = -1
 	};
 
 	//測定回数，測定周波数，印加トルク，収束するまでの目安時間
@@ -78,11 +78,11 @@ public:
 				max_spd = spd;
 				cnt = 0;
 				state = State::DECELERATION;
-				return std::pair<float,Result>{0.0f,Result::Continuation};
+				return std::pair<float,Result>{0.0f,Result::MEAS};
 			}else{
 				float commnad_trq = pi(steady_spd,spd);
 				lpf(commnad_trq);
-				return std::pair<float,Result>{commnad_trq,Result::Continuation};
+				return std::pair<float,Result>{commnad_trq,Result::MEAS};
 			}
 		case State::DECELERATION:
 			cnt ++;
@@ -91,7 +91,7 @@ public:
 				cnt = 0;
 				state = State::OFF;
 			}
-			return std::pair<float,Result>{0.0f,Result::Continuation};
+			return std::pair<float,Result>{0.0f,Result::MEAS};
 		case State::OFF:
 			cnt ++;
 			if(cnt > off_time){//十分減速するまで待機
@@ -112,10 +112,10 @@ public:
 				}else{ //測定継続
 					steady_spd *= -1.0f;
 					pi.reset();
-					return std::pair<float,Result>{0.0f,Result::Continuation};
+					return std::pair<float,Result>{0.0f,Result::MEAS};
 				}
 			}else{
-				return std::pair<float,Result>{0.0f,Result::Continuation};
+				return std::pair<float,Result>{0.0f,Result::MEAS};
 			}
 		}
 		return std::pair<float,Result>{0.0f,Result::OK};

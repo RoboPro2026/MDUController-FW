@@ -89,11 +89,17 @@ public:
 				.add(MReg::CONTROL,        CommonLib::DataAccessor::generate<uint8_t>(
 						[&](uint8_t v)mutable{set_rm_control_mode(v);},
 						[&]()->uint8_t{return get_rm_control_mode();}))
+
 				.add(MReg::ABS_GEAR_RATIO, CommonLib::DataAccessor::generate<bool>(
 						[&](float r)mutable{if(rm_motor.abs_enc) rm_motor.abs_enc->set_gear_ratio(r);},
 						[&]()->float{return rm_motor.abs_enc ? rm_motor.abs_enc->get_gear_ratio() : 1.0f;}))
 				.add(MReg::CAL_RQ,         CommonLib::DataAccessor::generate<int8_t>(
-						[&](int8_t s)mutable{if(s != 0) rm_motor.start_calibration();},
+						[&](int8_t s)mutable{
+							if(s == static_cast<int8_t>(CalibrationManager::Result::MEAS)){
+								rm_motor.start_calibration();
+							}else{
+								rm_motor.stop_calibration();
+							}},
 						[&]()->int8_t{return static_cast<int8_t>(rm_motor.is_calibrating());}))
 				.add(MReg::LOAD_J,         CommonLib::DataAccessor::generate<float>(
 						[&](float j)mutable{rm_motor.dob.inverse_model.set_inertia(j);},
@@ -277,6 +283,7 @@ public:
 		set_rm_control_mode(0);
 		vesc_motor.set_mode(MReg::VescMode::NOP);
 		rm_motor.set_torque(0.0);
+		rm_motor.stop_calibration();
 	}
 	void emergency_stop_release(void){
 		set_rm_control_mode(rm_mode_tmp);

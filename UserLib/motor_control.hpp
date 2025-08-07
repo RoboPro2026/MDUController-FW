@@ -103,7 +103,11 @@ public:
 	void overwrite_rad(float rad){rad_origin = enc.get_rad() - rad;}
 	float get_overwrited_rad(void)const{return enc.get_rad() - rad_origin;}
 
-	void start_calibration(void){calibration_state = CalibrationManager::Result::Continuation;}
+	void start_calibration(void){calibration_state = CalibrationManager::Result::MEAS;}
+	void stop_calibration(void){
+		calibration_state = CalibrationManager::Result::OK;
+		calib_mng.reset();
+	}
 	CalibrationManager::Result is_calibrating(void)const{return calibration_state;}
 
 	//CANの受信割込みで呼び出し
@@ -146,7 +150,7 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 
 	enc.update_by_can_msg(frame);
 
-	if(calibration_state == CalibrationManager::Result::Continuation){
+	if(calibration_state == CalibrationManager::Result::MEAS){
 		auto [_torque,_continue] = calib_mng.calibration(enc.get_rad_speed(),enc.get_torque());
 		calibration_state = _continue;
 		torque = _torque;
