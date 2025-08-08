@@ -218,9 +218,6 @@ namespace Task{
 			}else{
 				return std::nullopt;
 			}
-<<<<<<< HEAD
-		case CReg::EMS:
-=======
 		case CReg::SAVE_PARAM:
 			for(size_t i = 0; i < be::MOTOR_N; i++){
 				be::motor[i].read_motor_control_param(be::init_params.param[i]);
@@ -241,17 +238,13 @@ namespace Task{
 		case CReg::EMS:
 			be::led_r_sequencer.play(Blib::LEDPattern::error, true);
 			HAL_Delay(500); //完全に電源が落ちるまで待機 <-旧基板では入れてたけど不要かも
->>>>>>> e98cc1ee4b44ef041e41a0a620174c15414e4c11
 			for(auto &m:be::motor){
 				m.emergency_stop();
 			}
 			return std::nullopt;
 		case CReg::RESET_EMS:
-<<<<<<< HEAD
-=======
 			be::led_b_sequencer.play(Blib::LEDPattern::error, true);
 			HAL_Delay(100); //完全に電源が復帰するまで待機　<-旧基板では入れてたけど不要かも
->>>>>>> e98cc1ee4b44ef041e41a0a620174c15414e4c11
 			for(auto &m:be::motor){
 				m.emergency_stop_release();
 			}
@@ -259,10 +252,7 @@ namespace Task{
 		default:
 			return std::nullopt;
 		}
-<<<<<<< HEAD
-=======
 		return std::nullopt;
->>>>>>> e98cc1ee4b44ef041e41a0a620174c15414e4c11
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -275,12 +265,9 @@ namespace Task{
 		auto dp = rx_frame.value().encode_common_data_packet();
 		if(not dp.has_value()) return;
 
-<<<<<<< HEAD
-=======
 		be::led_b_sequencer.play(Blib::LEDPattern::ok);
 		be::tim_can_timeout->reset_timer_count();
 
->>>>>>> e98cc1ee4b44ef041e41a0a620174c15414e4c11
 		std::optional<Clib::Protocol::DataPacket> return_pack;
 		switch(dp.value().data_type){
 		case Clib::Protocol::DataType::MDC2_ID:
@@ -314,38 +301,26 @@ namespace Task{
 		Clib::CanFrame rx_frame = Clib::SLCAN::slcan_packed_to_can(rx_str.value());
 		auto dp = rx_frame.encode_common_data_packet();
 		if(not dp.has_value()) return;
-<<<<<<< HEAD
-=======
 
 		be::led_b_sequencer.play(Blib::LEDPattern::ok);
 		be::tim_can_timeout->reset_timer_count();
->>>>>>> e98cc1ee4b44ef041e41a0a620174c15414e4c11
 
 		std::optional<Clib::Protocol::DataPacket> return_pack;
 		switch(dp.value().data_type){
 		case Clib::Protocol::DataType::MDC2_ID:
 			if(dp.value().board_ID == be::board_id){
-<<<<<<< HEAD
-=======
 				be::led_b_sequencer.play(Blib::LEDPattern::ok);
->>>>>>> e98cc1ee4b44ef041e41a0a620174c15414e4c11
 				return_pack = mdc2_data_operation(dp.value());
 			}
 			break;
 		case Clib::Protocol::DataType::COMMON_ID:
 			if(dp.value().board_ID == be::board_id){
-<<<<<<< HEAD
-=======
 				be::led_b_sequencer.play(Blib::LEDPattern::ok);
->>>>>>> e98cc1ee4b44ef041e41a0a620174c15414e4c11
 				return_pack = common_data_operation(dp.value());
 			}
 			break;
 		case Clib::Protocol::DataType::COMMON_ID_ENFORCE:
-<<<<<<< HEAD
-=======
 			be::led_b_sequencer.play(Blib::LEDPattern::ok);
->>>>>>> e98cc1ee4b44ef041e41a0a620174c15414e4c11
 			return_pack = common_data_operation(dp.value());
 			break;
 		default:
@@ -499,19 +474,9 @@ void cppmain(void){
 		}
 	}
 
-<<<<<<< HEAD
-	be::tim_can_timeout->set_task([](){
-		printf("hello\r\n");
-	});
-	be::tim_can_timeout->start_timer(0.5);
-
-	while(1){
-		//be::led_g_sequencer.play(Blib::LEDPattern::test);
-=======
 	//メインループ
 	while(1){
 		be::led_g_sequencer.play(Blib::LEDPattern::running);
->>>>>>> e98cc1ee4b44ef041e41a0a620174c15414e4c11
 		Task::can_main_task();
 		Task::usb_task();
 		for(auto &m:be::motor){
@@ -549,21 +514,6 @@ void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t Bu
 	}
 }
 
-<<<<<<< HEAD
-//timer
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-	if(htim == be::tim_1khz.get_handler()){
-		be::tim_1khz.interrupt_task();
-	}else if(htim == be::tim_can_timeout->get_handler()){
-		be::tim_can_timeout->interrupt_task();
-	}else if(htim == be::tim_monitor->get_handler()){
-		be::tim_monitor->interrupt_task();
-	}
-}
-
-=======
->>>>>>> e98cc1ee4b44ef041e41a0a620174c15414e4c11
 extern "C"{
 int _write(int file, char *ptr, int len) {
 	HAL_UART_Transmit(&huart2, (uint8_t*) ptr, len,100);
