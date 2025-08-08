@@ -55,10 +55,13 @@ namespace BoardElement{
 		uint8_t usb_rx_buff[sizeof(Clib::RingBuffer<Clib::StrPack,5>)];
 		uint8_t usb_tx_buff[sizeof(Clib::RingBuffer<Clib::StrPack,5>)];
 
-		uint8_t abs_enc0[sizeof(BoardLib::AMT21xEnc)];
-		uint8_t abs_enc1[sizeof(BoardLib::AMT21xEnc)];
-		uint8_t abs_enc2[sizeof(BoardLib::AMT21xEnc)];
-		uint8_t abs_enc3[sizeof(BoardLib::AMT21xEnc)];
+		uint8_t abs_enc0[sizeof(Blib::AMT21xEnc)];
+		uint8_t abs_enc1[sizeof(Blib::AMT21xEnc)];
+		uint8_t abs_enc2[sizeof(Blib::AMT21xEnc)];
+		uint8_t abs_enc3[sizeof(Blib::AMT21xEnc)];
+
+		uint8_t tim_can_timeout[sizeof(Clib::InterruptionTimerHard)];
+		uint8_t tim_monitor[sizeof(Clib::InterruptionTimerHard)];
 	}
 
 	auto can_main = Clib::FdCanComm{
@@ -102,11 +105,26 @@ namespace BoardElement{
 
 	auto tim_1khz = Clib::InterruptionTimerHard{&htim15};
 
+	auto tim_can_timeout = std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_can_timeout) Clib::InterruptionTimerHard(&htim16)};
+	auto tim_monitor= std::shared_ptr<Clib::InterruptionTimerHard>{new(TmpMemoryPool::tim_monitor) Clib::InterruptionTimerHard(&htim17)};
+
 	auto motor = std::array<Blib::MotorUnit,4>{
-		Blib::MotorUnit(0,LED0_GPIO_Port,LED0_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5))),
-		Blib::MotorUnit(1,LED1_GPIO_Port,LED1_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3))),
-		Blib::MotorUnit(2,LED2_GPIO_Port,LED2_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1))),
-		Blib::MotorUnit(3,LED3_GPIO_Port,LED3_Pin,std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)))
+		Blib::MotorUnit(0,LED0_GPIO_Port,LED0_Pin,
+				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc0) Blib::AMT21xEnc(&huart5)),
+				tim_can_timeout,
+				tim_monitor),
+		Blib::MotorUnit(1,LED1_GPIO_Port,LED1_Pin,
+				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc1) Blib::AMT21xEnc(&huart3)),
+				tim_can_timeout,
+				tim_monitor),
+		Blib::MotorUnit(2,LED2_GPIO_Port,LED2_Pin,
+				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc2) Blib::AMT21xEnc(&hlpuart1)),
+				tim_can_timeout,
+				tim_monitor),
+		Blib::MotorUnit(3,LED3_GPIO_Port,LED3_Pin,
+				std::unique_ptr<Blib::IABSEncoder>(new(TmpMemoryPool::abs_enc3) Blib::AMT21xEnc(&huart2)),
+				tim_can_timeout,
+				tim_monitor)
 	};
 }
 
@@ -141,8 +159,33 @@ namespace Task{
 		}
 	}
 	std::optional<Clib::Protocol::DataPacket> common_data_operation(const Clib::Protocol::DataPacket& dp){
-		//TODO:書く
-		return std::nullopt;
+		Clib::Protocol::DataPacket return_packet = dp;
+
+		switch(dp.register_ID){
+		case CReg::ID_RQ:
+			if(dp.is_request){
+				return_packet.board_ID = be::board_id;
+				return_packet.data_type = Clib::Protocol::DataType::COMMON_ID;
+				return_packet.register_ID = CReg::ID_RQ;
+				return_packet.is_request = false;
+				return_packet.writer().write<uint8_t>(static_cast<uint8_t>(Clib::Protocol::DataType::MDC2_ID));
+				return return_packet;
+			}else{
+				return std::nullopt;
+			}
+		case CReg::EMS:
+			for(auto &m:be::motor){
+				m.emergency_stop();
+			}
+			return std::nullopt;
+		case CReg::RESET_EMS:
+			for(auto &m:be::motor){
+				m.emergency_stop_release();
+			}
+			return std::nullopt;
+		default:
+			return std::nullopt;
+		}
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -155,14 +198,19 @@ namespace Task{
 		auto dp = rx_frame.value().encode_common_data_packet();
 		if(not dp.has_value()) return;
 
-		if(dp.value().board_ID != be::board_id) return;
-
 		std::optional<Clib::Protocol::DataPacket> return_pack;
 		switch(dp.value().data_type){
 		case Clib::Protocol::DataType::MDC2_ID:
-			return_pack = mdc2_data_operation(dp.value());
+			if(dp.value().board_ID == be::board_id){
+				return_pack = mdc2_data_operation(dp.value());
+			}
 			break;
 		case Clib::Protocol::DataType::COMMON_ID:
+			if(dp.value().board_ID == be::board_id){
+				return_pack = common_data_operation(dp.value());
+			}
+			break;
+		case Clib::Protocol::DataType::COMMON_ID_ENFORCE:
 			return_pack = common_data_operation(dp.value());
 			break;
 		default:
@@ -181,17 +229,22 @@ namespace Task{
 		if(not rx_str.has_value()) return;
 
 		Clib::CanFrame rx_frame = Clib::SLCAN::slcan_packed_to_can(rx_str.value());
-
 		auto dp = rx_frame.encode_common_data_packet();
 		if(not dp.has_value()) return;
-		if(dp.value().board_ID != be::board_id) return;
 
 		std::optional<Clib::Protocol::DataPacket> return_pack;
 		switch(dp.value().data_type){
 		case Clib::Protocol::DataType::MDC2_ID:
-			return_pack = mdc2_data_operation(dp.value());
+			if(dp.value().board_ID == be::board_id){
+				return_pack = mdc2_data_operation(dp.value());
+			}
 			break;
 		case Clib::Protocol::DataType::COMMON_ID:
+			if(dp.value().board_ID == be::board_id){
+				return_pack = common_data_operation(dp.value());
+			}
+			break;
+		case Clib::Protocol::DataType::COMMON_ID_ENFORCE:
 			return_pack = common_data_operation(dp.value());
 			break;
 		default:
@@ -204,7 +257,6 @@ namespace Task{
 			Clib::StrPack tx_str = Clib::SLCAN::can_to_slcan_packed(tx_frame);
 
 			be::usb_cdc.tx(tx_str);
-			//be::usb_uart.tx(tx_str);
 		}
 	}
 
@@ -215,10 +267,6 @@ namespace Task{
 		Clib::CanFrame tx_frame;
 		tx_frame.id = 0x200;
 
-//		int16_t p = be::motor[2].rm_motor.get_current_can_format();
-//		tx_frame.data[4] = p >>8;
-//		tx_frame.data[5] = p&0xFF;
-//		tx_frame.data_length = 8;
 		auto w = tx_frame.writer();
 		for(auto &m:be::motor){
 			int16_t power = m.rm_motor.get_current_can_format();
@@ -267,7 +315,7 @@ void cppmain(void){
 		Task::can_transmit_to_robomas_motor();
 		Task::can_transmit_to_vesc();
 
-		be::led_r_sequencer.update();
+		//be::led_r_sequencer.update();
 		be::led_g_sequencer.update();
 		be::led_b_sequencer.update();
 
@@ -284,8 +332,13 @@ void cppmain(void){
 	be::led_g_sequencer.play(Blib::LEDPattern::setting);
 	be::led_b_sequencer.play(Blib::LEDPattern::setting);
 
+	be::tim_can_timeout->set_task([](){
+		printf("hello\r\n");
+	});
+	be::tim_can_timeout->start_timer(0.5);
+
 	while(1){
-		be::led_g_sequencer.play(Blib::LEDPattern::test);
+		//be::led_g_sequencer.play(Blib::LEDPattern::test);
 		Task::can_main_task();
 		Task::usb_task();
 		for(auto &m:be::motor){
@@ -355,6 +408,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim == be::tim_1khz.get_handler()){
 		be::tim_1khz.interrupt_task();
+	}else if(htim == be::tim_can_timeout->get_handler()){
+		be::tim_can_timeout->interrupt_task();
+	}else if(htim == be::tim_monitor->get_handler()){
+		be::tim_monitor->interrupt_task();
 	}
 }
 
