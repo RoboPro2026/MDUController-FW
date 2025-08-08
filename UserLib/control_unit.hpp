@@ -20,18 +20,46 @@
 #include "LED_pattern.hpp"
 
 #include <memory>
+#include <bitset>
 
 namespace BoardLib{
 
-struct MotorUnit{
-	bool is_active = false;
-	C6x0Controller rm_motor;
-	VescDataConverter vesc_motor;
+struct MotorControlParam{
+	uint8_t rm_mode;
 
-	float vesc_value = 0.0f;
+	float trq_limit;
+	float spd_gain_p;
+	float spd_gain_i;
+	float spd_gain_d;
+
+	float spd_limit;
+	float pos_gain_p;
+	float pos_gain_i;
+	float pos_gain_d;
+
+	float dob_j;
+	float dob_d;
+	float dob_lpf_cutoff_freq;
+
+	float abs_gear_ratio;
+
+	MReg::VescMode vesc_mode;
+};
+
+class MotorUnit{
+	bool activity_report = false;
+	bool is_active = true;
+	bool estimate_motor_type = true;
+
+	uint8_t rm_mode_tmp = 0;
+	MReg::VescMode vesc_mode_tmp = MReg::VescMode::NOP;
+
+public:
+	C6x0Controller rm_motor;
+	VescController vesc_motor;
 
 	CommonLib::GPIO led;
-	CommonLib::Sequencer led_sequence;
+	CommonLib::Sequencer led_sequencer;
 
 	const CommonLib::Note* led_playing_pattern;
 
@@ -40,67 +68,40 @@ struct MotorUnit{
 
 	CommonLib::IDMap id_map;
 
-	void set_control_mode(uint8_t c_val){
-		MReg::ControlMode mode = static_cast<MReg::ControlMode>(c_val&0b11);
-		if(static_cast<size_t>(mode) == 0b11) return;
+	std::bitset<64> monitor_flags;
 
-		MReg::RobomasMD md = static_cast<MReg::RobomasMD>((c_val >> 2) & 0b1);
-		bool use_dob = ((c_val >> 4)&0b1) == 0b1;
-		bool use_abs_enc = ((c_val >> 5)&0b1) == 0b1;
-		bool est_m_type = ((c_val >> 5)&0b1) == 0b1;
-
-		rm_motor.set_control_mode(mode);
-		rm_motor.set_motor_type(md);
-		rm_motor.use_abs_enc(use_abs_enc);
-		rm_motor.use_dob(use_dob);
-		rm_motor.estimate_motor_type(est_m_type);
-	}
-
-	void update_led_pattern(void){
-		led_sequence.play(BoardLib::LEDPattern::led_mode_indicate[rm_motor.is_using_abs_enc() ? 1 : 0][static_cast<size_t>(rm_motor.get_control_mode())]);
-	}
-
-	uint8_t get_control_mode(void)const{
-		return static_cast<uint8_t>(rm_motor.get_control_mode())
-				| (static_cast<uint8_t>(rm_motor.get_motor_type()) << 2)
-				| (rm_motor.is_using_dob()?0b0001'0000:0)
-				| (rm_motor.is_using_abs_enc()?0b0010'0000:0);
-	}
-
-	uint8_t mode_tmp = 0;
-	void emergency_stop(void){
-		mode_tmp = get_control_mode();
-		set_control_mode(0);
-	}
-	void emergency_stop_release(void){
-		set_control_mode(mode_tmp);
-	}
-
-	MotorUnit(int id,
+	MotorUnit(
+			C6x0Controller &&_rm_motor,
+			VescController &&_vesc_motor,
 			GPIO_TypeDef *led_port,
 			uint_fast16_t led_pin,
-			std::unique_ptr<BoardLib::IABSEncoder> abs_enc,
 			std::shared_ptr<CommonLib::InterruptionTimerHard> _timeout_tim,
-			std::shared_ptr<CommonLib::InterruptionTimerHard> _monitor_tim):
-
-		rm_motor(C6x0ControllerBuilder(id,MReg::RobomasMD::C610).set_abs_enc(std::move(abs_enc), false).build()),
-		vesc_motor(id),
+			std::shared_ptr<CommonLib::InterruptionTimerHard> _monitor_tim
+			):
+		rm_motor(std::move(_rm_motor)),
+		vesc_motor(std::move(_vesc_motor)),
 		led(led_port,led_pin),
-		led_sequence([&](float v){led(v>0.0f);}),
+		led_sequencer([&](float v){led(v>0.0f);}),
 		led_playing_pattern(BoardLib::LEDPattern::led_mode_indicate[0][0]),
 		timeout_tim(_timeout_tim),
 		monitor_tim(_monitor_tim),
 		id_map(CommonLib::IDMapBuilder()
 				.add(MReg::MOTOR_STATE,    CommonLib::DataAccessor::generate<bool>(&is_active))
 				.add(MReg::CONTROL,        CommonLib::DataAccessor::generate<uint8_t>(
-						[&](uint8_t v)mutable{set_control_mode(v);},
-						[&]()->uint8_t{return get_control_mode();}))
+						[&](uint8_t v)mutable{set_rm_control_mode(v);},
+						[&]()->uint8_t{return get_rm_control_mode();}))
+
 				.add(MReg::ABS_GEAR_RATIO, CommonLib::DataAccessor::generate<bool>(
-						[&](float r)mutable{rm_motor.abs_enc->set_gear_ratio(r);},
-						[&]()->float{return rm_motor.abs_enc->get_gear_ratio();}))
-				.add(MReg::CAL_RQ,         CommonLib::DataAccessor::generate<bool>(
-						[&](bool s)mutable{rm_motor.start_calibration();},
-						[&]()->bool{return rm_motor.is_calibrating();}))
+						[&](float r)mutable{if(rm_motor.abs_enc) rm_motor.abs_enc->set_gear_ratio(r);},
+						[&]()->float{return rm_motor.abs_enc ? rm_motor.abs_enc->get_gear_ratio() : 1.0f;}))
+				.add(MReg::CAL_RQ,         CommonLib::DataAccessor::generate<int8_t>(
+						[&](int8_t s)mutable{
+							if(s == static_cast<int8_t>(CalibrationManager::Result::MEAS)){
+								rm_motor.start_calibration();
+							}else{
+								rm_motor.stop_calibration();
+							}},
+						[&]()->int8_t{return static_cast<int8_t>(rm_motor.is_calibrating());}))
 				.add(MReg::LOAD_J,         CommonLib::DataAccessor::generate<float>(
 						[&](float j)mutable{rm_motor.dob.inverse_model.set_inertia(j);},
 						[&]()->float{return rm_motor.dob.inverse_model.get_inertia();}))
@@ -108,7 +109,9 @@ struct MotorUnit{
 						[&](float d)mutable{rm_motor.dob.inverse_model.set_friction_coef(d);},
 						[&]()->float{return rm_motor.dob.inverse_model.get_friction_coef();}))
 				.add(MReg::DOB_CF,         CommonLib::DataAccessor::generate<float>(
-						[&](float f)mutable{rm_motor.dob.set_lpf_cutoff_freq(f);}))
+						[&](float f)mutable{rm_motor.dob.set_lpf_cutoff_freq(f);},
+						[&]()->float{return rm_motor.dob.get_lpf_cutoff_freq();}))
+
 				.add(MReg::CAN_TIMEOUT,    CommonLib::DataAccessor::generate<uint16_t>(
 						[&](uint16_t p)mutable{
 							if(timeout_tim){
@@ -167,23 +170,127 @@ struct MotorUnit{
 						[&](int32_t t)mutable{rm_motor.abs_enc->set_turn_count(t);},
 						[&]()->int32_t{return rm_motor.abs_enc->get_turn_count();}))
 
-				.add(MReg::VESC_MODE,      CommonLib::DataAccessor::generate<int8_t>(
-						[&](int8_t m)mutable{vesc_motor.set_mode(static_cast<MReg::VescMode>(m));},
-						[&]()->int8_t{return static_cast<uint8_t>(vesc_motor.get_mode());}))
-				.add(MReg::VESC_TARGET,    CommonLib::DataAccessor::generate<float>(&vesc_value))
-
+				.add(MReg::VESC_MODE,      CommonLib::DataAccessor::generate<uint8_t>(
+						[&](uint8_t m)mutable{vesc_motor.set_mode(static_cast<MReg::VescMode>(m));},
+						[&]()->uint8_t{return static_cast<uint8_t>(vesc_motor.get_mode());}))
+				.add(MReg::VESC_TARGET,    CommonLib::DataAccessor::generate<float>(
+						[&](float v)mutable{vesc_motor.set_value(v);},
+						[&]()->float{return vesc_motor.get_value();}))
+				
 				.add(MReg::MONITOR_PERIOD, CommonLib::DataAccessor::generate<uint16_t>(
 						[&](uint16_t p)mutable{
 							if(monitor_tim){
 								monitor_tim->start_timer(p==0 ? -1.0f : static_cast<float>(p)*0.001);
 							}
 						}))
+				.add(MReg::MONITOR_REG,    CommonLib::DataAccessor::generate<uint64_t>(
+						[&](uint64_t val)mutable{ monitor_flags = std::bitset<64>{val};},
+						[&]()->uint64_t{ return monitor_flags.to_ullong();}))
+				
 				.build()){
 
-		set_control_mode(0b0000'0000);
+		set_rm_control_mode(0b0000'0000);
+	}
+
+	void set_rm_control_mode(uint8_t c_val){
+		MReg::ControlMode mode = static_cast<MReg::ControlMode>(c_val&0b11);
+		if(static_cast<size_t>(mode) == 0b11) return;
+
+		MReg::RobomasMD md = static_cast<MReg::RobomasMD>((c_val >> MReg::ControlBitPos::MOTOR) & 0b1);
+		bool use_dob = ((c_val >> MReg::ControlBitPos::DOB_EN)&0b1) == 0b1;
+		bool use_abs_enc = ((c_val >> MReg::ControlBitPos::ABS_EN)&0b1) == 0b1;
+		estimate_motor_type = ((c_val >> MReg::ControlBitPos::MD_GUESS_EN)&0b1) == 0b1;
+
+		rm_motor.set_control_mode(mode);
+		rm_motor.set_motor_type(md);
+		rm_motor.use_abs_enc(use_abs_enc);
+		rm_motor.use_dob(use_dob);
+		rm_motor.estimate_motor_type(estimate_motor_type);
+	}
+
+	uint8_t get_rm_control_mode(void)const{
+		return static_cast<uint8_t>(rm_motor.get_control_mode())
+				| (static_cast<uint8_t>(rm_motor.get_motor_type()) << 2)
+				| (rm_motor.is_using_dob() ? (1u << MReg::ControlBitPos::DOB_EN) : 0)
+				| (rm_motor.is_using_abs_enc() ? (1u << MReg::ControlBitPos::ABS_EN) : 0)
+				| (estimate_motor_type ? (1u << MReg::ControlBitPos::MD_GUESS_EN) : 0);
+	}
+
+	void update_led_pattern(void){
+		if(is_active){
+			led_sequencer.play(BoardLib::LEDPattern::led_mode_indicate[rm_motor.is_using_abs_enc() ? 1 : 0][static_cast<size_t>(rm_motor.get_control_mode())]);
+		}else if(vesc_motor.get_mode() != MReg::VescMode::NOP){
+			led_sequencer.play(BoardLib::LEDPattern::vesc_only);
+		}
+	}
+
+	void write_motor_control_param(const MotorControlParam &p){
+		set_rm_control_mode(p.rm_mode);
+		rm_motor.spd_pid.set_p_gain(p.spd_gain_p);
+		rm_motor.spd_pid.set_i_gain(p.spd_gain_i);
+		rm_motor.spd_pid.set_d_gain(p.spd_gain_d);
+		rm_motor.spd_pid.set_limit(p.trq_limit);
+
+		rm_motor.pos_pid.set_p_gain(p.pos_gain_p);
+		rm_motor.pos_pid.set_i_gain(p.pos_gain_i);
+		rm_motor.pos_pid.set_d_gain(p.pos_gain_d);
+		rm_motor.pos_pid.set_limit(p.spd_limit);
+
+		rm_motor.dob.inverse_model.set_inertia(p.dob_j);
+		rm_motor.dob.inverse_model.set_friction_coef(p.dob_d);
+		rm_motor.dob.set_lpf_cutoff_freq(p.dob_lpf_cutoff_freq);
+
+		if(rm_motor.abs_enc){
+			rm_motor.abs_enc->set_gear_ratio(p.abs_gear_ratio);
+		}
+
+		vesc_motor.set_mode(p.vesc_mode);
+	}
+
+	void read_motor_control_param(MotorControlParam &p){
+		p.rm_mode = get_rm_control_mode();
+		p.spd_gain_p = rm_motor.spd_pid.get_p_gain();
+		p.spd_gain_i = rm_motor.spd_pid.get_i_gain();
+		p.spd_gain_d = rm_motor.spd_pid.get_d_gain();
+		auto [tll,tlh] = rm_motor.spd_pid.get_limit();
+		p.trq_limit = tlh;
+
+		p.pos_gain_p = rm_motor.pos_pid.get_p_gain();
+		p.pos_gain_i = rm_motor.pos_pid.get_i_gain();
+		p.pos_gain_d = rm_motor.pos_pid.get_d_gain();
+		auto [sll,slh] = rm_motor.pos_pid.get_limit();
+		p.spd_limit = slh;
+
+		p.dob_j = rm_motor.dob.inverse_model.get_inertia();
+		p.dob_d = rm_motor.dob.inverse_model.get_friction_coef();
+		p.dob_lpf_cutoff_freq = rm_motor.dob.get_lpf_cutoff_freq();
+
+		p.abs_gear_ratio = rm_motor.abs_enc ? rm_motor.abs_enc->get_gear_ratio() : 1.0f;
+		p.vesc_mode = vesc_motor.get_mode();
+	}
+
+	void operation_report(bool running_normally){
+		activity_report = running_normally;
+	}
+	void request_report(void){
+		is_active = activity_report;
+		activity_report = false;
+	}
+
+
+	void emergency_stop(void){
+		rm_mode_tmp = get_rm_control_mode();
+		vesc_mode_tmp = vesc_motor.get_mode();
+		set_rm_control_mode(0);
+		vesc_motor.set_mode(MReg::VescMode::NOP);
+		rm_motor.set_torque(0.0);
+		rm_motor.stop_calibration();
+	}
+	void emergency_stop_release(void){
+		set_rm_control_mode(rm_mode_tmp);
+		vesc_motor.set_mode(vesc_mode_tmp);
 	}
 };
-
 
 }//namespace BoardLib
 

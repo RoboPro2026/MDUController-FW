@@ -23,6 +23,7 @@ namespace CommonRegister{
 	inline constexpr size_t NOP             = 0x0000;
 	inline constexpr size_t ID_RQ           = 0x0001;
 	inline constexpr size_t SAVE_PARAM      = 0x0002;
+	inline constexpr size_t RESET_PARAM     = 0x0003;
 	inline constexpr size_t EMS             = 0x000E;
 	inline constexpr size_t RESET_EMS       = 0x000F;
 }
@@ -85,6 +86,14 @@ namespace MDCRegister{
 
 	inline constexpr size_t MONITOR_PERIOD  = 0x00F0;
 	inline constexpr size_t MONITOR_REG     = 0x00F1;
+
+	namespace  ControlBitPos{
+		inline constexpr size_t MODE = 0;
+		inline constexpr size_t MOTOR = 2;
+		inline constexpr size_t DOB_EN = 4;
+		inline constexpr size_t ABS_EN = 5;
+		inline constexpr size_t MD_GUESS_EN = 6;
+	}
 
 	enum class ControlMode:size_t{
 		OPEN_LOOP,

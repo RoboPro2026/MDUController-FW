@@ -25,6 +25,7 @@ class DisturbanceObserver{
 private:
 	const float operation_freq;
 	const float lpf_q_factor;
+	float lpf_cutoff_freq;
 	float prev_controller_output = 0.0f;
 	float prev_observed_disturbance = 0.0f;
 	//CommonLib::Math::BiquadFilter<float> lpf;
@@ -32,9 +33,10 @@ private:
 public:
 	T inverse_model; //制御対象の逆モデル
 
-	DisturbanceObserver(float _operation_freq,T&& _inverse_model,float lpf_cutoff_freq,float _lpf_q_factor = 1.0f) //なんとなく右辺値参照にしたけどべつにいいかも
+	DisturbanceObserver(float _operation_freq,T&& _inverse_model,float _lpf_cutoff_freq,float _lpf_q_factor = 1.0f) //なんとなく右辺値参照にしたけどべつにいいかも
 		:operation_freq(_operation_freq),
 		 lpf_q_factor(_lpf_q_factor),
+		 lpf_cutoff_freq(_lpf_cutoff_freq),
 		 //lpf(operation_freq,lpf_cutoff_freq,lpf_q_factor),
 		 lpf(operation_freq,lpf_cutoff_freq),
 		 inverse_model(std::move(_inverse_model)){
@@ -51,6 +53,10 @@ public:
 	void set_lpf_cutoff_freq(float f_cutoff){
 		//lpf.set_param(operation_freq,f_cutoff,lpf_q_factor);
 		lpf.set_param(operation_freq,f_cutoff);
+		lpf_cutoff_freq = f_cutoff;
+	}
+	float get_lpf_cutoff_freq(void){
+		return lpf_cutoff_freq;
 	}
 
 	void reset(void){

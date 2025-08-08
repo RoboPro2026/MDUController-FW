@@ -14,11 +14,16 @@
 namespace BoardLib::LEDPattern{
 
 	inline constexpr CommonLib::Note ok[] = {
-		{1.0f,10},
-		{0.0f,10},
+		{1.0f,100},
+		{0.0f,100},
 		CommonLib::end_of_io_sequence
 	};
-	inline constexpr CommonLib::Note setting[]={
+	inline constexpr CommonLib::Note running[] = {
+		{0.2f,100},
+		{0.0f,900},
+		CommonLib::end_of_io_sequence
+	};
+	inline constexpr CommonLib::Note error[]={
 		{1.0f,100},
 		{0.0f,100},
 		{1.0f,700},
@@ -26,7 +31,7 @@ namespace BoardLib::LEDPattern{
 		CommonLib::end_of_io_sequence
 	};
 
-	inline constexpr CommonLib::Note test[]={
+	inline constexpr CommonLib::Note sos[]={
 		{1.0f,100},
 		{0.0f,100},
 		{1.0f,100},
@@ -59,20 +64,20 @@ namespace BoardLib::LEDPattern{
 	inline const CommonLib::Note speed_mode[] = {
 		{0.0f,  1},
 		{1.0f,100},
-		{0.0f,100},
+		{0.0f,200},
 		{1.0f,100},
-		{0.0f,1699},
+		{0.0f,1599},
 
 		CommonLib::end_of_io_sequence
 	};
 	inline const CommonLib::Note position_mode[] = {
 		{0.0f,1},
 		{1.0f,100},
-		{0.0f,100},
+		{0.0f,200},
 		{1.0f,100},
-		{0.0f,100},
+		{0.0f,200},
 		{1.0f,100},
-		{0.0f,1499},
+		{0.0f,1299},
 
 		CommonLib::end_of_io_sequence
 	};
@@ -80,7 +85,7 @@ namespace BoardLib::LEDPattern{
 	inline const CommonLib::Note abs_pwm_mode[] = {
 		{0.0f,1},
 		{1.0,500},
-		{0.0,100},
+		{0.0,200},
 		{1.0,100},
 		{0.0,1299},
 		CommonLib::end_of_io_sequence
@@ -88,32 +93,40 @@ namespace BoardLib::LEDPattern{
 	inline const CommonLib::Note abs_speed_mode[] = {
 		{0.0f,  1},
 		{1.0f,500},
-		{0.0f,100},
+		{0.0f,200},
 		{1.0f,100},
-		{0.0f,100},
+		{0.0f,200},
 		{1.0f,100},
-		{0.0f,1099},
+		{0.0f,899},
 
 		CommonLib::end_of_io_sequence
 	};
 	inline const CommonLib::Note abs_position_mode[] = {
 		{0.0f,  1},
 		{1.0f,500},
-		{0.0f,100},
+		{0.0f,200},
 		{1.0f,100},
-		{0.0f,100},
+		{0.0f,200},
 		{1.0f,100},
-		{0.0f,100},
+		{0.0f,200},
 		{1.0f,100},
-		{0.0f,899},
+		{0.0f,599},
 
 		CommonLib::end_of_io_sequence
 	};
 
-	const CommonLib::Note* led_mode_indicate[2][3]={
+	inline const CommonLib::Note* led_mode_indicate[2][3]={
 			{BoardLib::LEDPattern::pwm_mode,BoardLib::LEDPattern::speed_mode,BoardLib::LEDPattern::position_mode},
 			{BoardLib::LEDPattern::abs_pwm_mode,BoardLib::LEDPattern::abs_speed_mode,BoardLib::LEDPattern::abs_position_mode}
 	};
+
+	inline const CommonLib::Note vesc_only[] = {
+			{0.0f,  1},
+			{1.0f,1000},
+			{0.0f,999},
+
+			CommonLib::end_of_io_sequence
+		};
 }
 
 

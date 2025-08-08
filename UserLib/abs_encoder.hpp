@@ -11,6 +11,8 @@
 #include "main.h"
 #include "CommonLib/encoder.hpp"
 
+#include <unordered_map>
+
 namespace BoardLib{
 
 class IABSEncoder:public CommonLib::ContinuableEncoder{
@@ -22,6 +24,7 @@ public:
 		SUCCESS,
 		FAILURE
 	};
+	virtual void init(void) = 0;
 	virtual bool is_ready(void)const = 0;
 	virtual bool is_dead(void)const = 0;
 	virtual void read_start(void) = 0;
@@ -41,6 +44,19 @@ private:
 
 	bool new_data_available;
 	bool no_responce;
+
+#if (USE_HAL_UART_REGISTER_CALLBACKS == 1)
+	static std::unordered_map<UART_HandleTypeDef *,std::function<void(void)>> callbacks;
+	static void callback(UART_HandleTypeDef *huart){
+		auto iter = callbacks.find(huart);
+		if(iter == callbacks.end()){
+			//nop
+		}else{
+			iter->second();
+		}
+	}
+#endif
+
 public:
 	AMT21xEnc(UART_HandleTypeDef* _uart,uint8_t _enc_id = 0x54,float update_freq = 1000.0f,float gear_ratio = 1.0f)
 		:IABSEncoder(enc_resolution,update_freq,gear_ratio),
@@ -51,6 +67,15 @@ public:
 		if(uart == nullptr){
 			no_responce = true;
 		}
+#if (USE_HAL_UART_REGISTER_CALLBACKS == 1)
+		callbacks.insert(std::pair(uart,[&](){this->read_finish_task();}));
+#endif
+	}
+
+	void init(void)override{
+#if (USE_HAL_UART_REGISTER_CALLBACKS == 1)
+		HAL_UART_RegisterCallback(uart, HAL_UART_RX_COMPLETE_CB_ID,callback);
+#endif
 	}
 
 	bool is_ready(void)const override{
@@ -92,7 +117,12 @@ public:
 		return uart;
 	}
 };
+#if (USE_HAL_UART_REGISTER_CALLBACKS == 1)
+inline std::unordered_map<UART_HandleTypeDef *,std::function<void(void)>> AMT21xEnc::callbacks;
+#endif
+
 #endif //HAL_UART_MODULE_ENABLED
+
 
 #ifdef HAL_I2C_MODULE_ENABLED
 class AS5600State:public IABSEncoder{
