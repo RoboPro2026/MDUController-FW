@@ -112,7 +112,7 @@ namespace CommonLib{
 	public:
 		std::unordered_map<size_t, DataAccessor> accessors_map;
 		IDMapBuilder& add(size_t id,const DataAccessor& c){
-			accessors_map.insert(std::pair(id, c)); //どうせ初期化時しか使わないからええやろ，の信仰
+			accessors_map.emplace(id, c); //どうせ初期化時しか使わないからええやろ，の信仰
 			return *this;
 		}
 		IDMap build(){

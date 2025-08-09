@@ -140,12 +140,13 @@ inline bool C6x0Controller::update(const CommonLib::CanFrame &frame){
 	}
 
 	if(est_m_type){
-		if(frame.data[6] == 0){
+		if((frame.data[6] == 0) and (motor_type != MReg::RobomasMD::C610)){
+			motor_type = MReg::RobomasMD::C610;
 			set_motor_type(MReg::RobomasMD::C610);
-		}else{
+		}else if(motor_type != MReg::RobomasMD::C620){
+			motor_type = MReg::RobomasMD::C620;
 			set_motor_type(MReg::RobomasMD::C620);
 		}
-		est_m_type = false;
 	}
 
 	enc.update_by_can_msg(frame);

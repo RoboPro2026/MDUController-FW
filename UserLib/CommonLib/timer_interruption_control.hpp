@@ -44,7 +44,7 @@ public:
 	InterruptionTimerHard(TIM_HandleTypeDef *_tim,std::function<void(void)> _task = nullptr)
 	:tim(_tim),task(_task){
 #if (USE_HAL_TIM_REGISTER_CALLBACKS == 1)
-		callbacks.insert(std::pair(tim,[&](){this->interrupt_task();}));
+		callbacks.emplace(tim,[&](){this->interrupt_task();});
 #endif
 	}
 

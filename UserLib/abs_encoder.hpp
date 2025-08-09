@@ -68,7 +68,7 @@ public:
 			no_responce = true;
 		}
 #if (USE_HAL_UART_REGISTER_CALLBACKS == 1)
-		callbacks.insert(std::pair(uart,[&](){this->read_finish_task();}));
+		callbacks.emplace(uart,[&](){this->read_finish_task();});
 #endif
 	}
 

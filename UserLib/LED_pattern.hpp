@@ -55,6 +55,12 @@ namespace BoardLib::LEDPattern{
 		CommonLib::end_of_io_sequence
 	};
 
+	inline const CommonLib::Note calibrating[] = {
+			{1.0f,100},
+			{0.0f,100},
+			CommonLib::end_of_io_sequence
+	};
+
 	inline const CommonLib::Note pwm_mode[] = {
 		{0.0,  1},
 		{1.0,100},

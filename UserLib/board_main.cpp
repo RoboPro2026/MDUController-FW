@@ -45,6 +45,8 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 namespace Clib = CommonLib;
 namespace Blib = BoardLib;
 
+//#define VIRTUAL_MOTOR_DEBUG
+
 namespace BoardElement{
 	namespace TmpMemoryPool{
 		uint8_t can_main_tx_buff[sizeof(Clib::RingBuffer<Clib::CanFrame,5>)];
@@ -172,6 +174,25 @@ namespace BoardElement{
 
 	auto flash = Clib::G4FlashRW(FLASH_BANK_2,126,0x807F000);
 }
+
+#ifdef VIRTUAL_MOTOR_DEBUG
+namespace Debug{
+	auto virtual_motor = std::array<Blib::VirtualRobomasMotor,BoardElement::MOTOR_N>{
+		Blib::VirtualRobomasMotor(1000.0,0,MReg::RobomasMD::C610,0.001,0.0008),
+		Blib::VirtualRobomasMotor(1000.0,1,MReg::RobomasMD::C610,0.001,0.0008),
+		Blib::VirtualRobomasMotor(1000.0,2,MReg::RobomasMD::C610,0.001,0.0008),
+		Blib::VirtualRobomasMotor(1000.0,3,MReg::RobomasMD::C610,0.001,0.0008)
+	};
+
+	void virtual_motor_operation(void){
+		for(size_t i = 0; i < BoardElement::MOTOR_N; i++){
+			Clib::CanFrame vcf = virtual_motor[i](BoardElement::motor[i].rm_motor.get_current_can_format());
+
+			BoardElement::motor[i].operation_report(BoardElement::motor[i].rm_motor.update(vcf));
+		}
+	}
+}
+#endif
 
 namespace be = BoardElement;
 
@@ -422,9 +443,13 @@ void cppmain(void){
 
 	//タイマー設定
 	be::tim_1khz.set_task([](){
+#ifdef VIRTUAL_MOTOR_DEBUG
+		Debug::virtual_motor_operation();
+#else
 		Task::can_transmit_to_robomas_motor();
+#endif
 
-		//be::led_r_sequencer.update();
+		be::led_r_sequencer.update();
 		be::led_g_sequencer.update();
 		be::led_b_sequencer.update();
 

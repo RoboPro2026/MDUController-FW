@@ -218,7 +218,11 @@ public:
 
 	void update_led_pattern(void){
 		if(is_active){
-			led_sequencer.play(BoardLib::LEDPattern::led_mode_indicate[rm_motor.is_using_abs_enc() ? 1 : 0][static_cast<size_t>(rm_motor.get_control_mode())]);
+			if(rm_motor.is_calibrating() == BoardLib::CalibrationManager::Result::MEAS){
+				led_sequencer.play(BoardLib::LEDPattern::calibrating);
+			}else{
+				led_sequencer.play(BoardLib::LEDPattern::led_mode_indicate[rm_motor.is_using_abs_enc() ? 1 : 0][static_cast<size_t>(rm_motor.get_control_mode())]);
+			}
 		}else if(vesc_motor.get_mode() != MReg::VescMode::NOP){
 			led_sequencer.play(BoardLib::LEDPattern::vesc_only);
 		}

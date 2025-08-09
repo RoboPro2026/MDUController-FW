@@ -61,7 +61,7 @@ public:
 	 on_hold_time(static_cast<int>(settling_time*update_freq*1.0f)),
 	 off_time(static_cast<int>(settling_time*update_freq*1.0f)),
 	 pi(CommonLib::Math::PIBuilder(update_freq).set_gain(0.5, 0.1).set_limit(1.0f).build()),
-	 lpf(update_freq,50.0f){
+	 lpf(update_freq,update_freq*0.05){
 	}
 
 	//[モーターに印加するトルク，キャリブレーション処理を継続するか]
